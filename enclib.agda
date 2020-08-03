@@ -31,6 +31,7 @@ data Circ′ : List Ty → List Ty → Set
 Cr′⟦_⟧ : Circ′ Γ Δ → Vals Γ → Vals Δ
 
 toCirc′ : Circ Γ Δ → Circ′ Γ Δ
+
 ------------------------------------------------
 size bool = 1
 size tri  = 2

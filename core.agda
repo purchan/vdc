@@ -13,6 +13,8 @@ _++Vl_ : Vals Γ   → Vals Γ′ → Vals (Γ ++ Γ′)
 
 data Vars : List Ty → List Ty → Set
 _++Vr_  : Vars Γ Δ → Vars Γ Δ′ → Vars Γ (Δ ++ Δ′)
+
+look : σ ∈ Γ → Vals Γ → Ty⟦ σ ⟧
 lookup : Vars Γ Δ → Vals Γ  → Vals Δ
 
 mapThere : Vars Γ Δ → Vars (σ ∷ Γ) Δ
@@ -61,12 +63,12 @@ pattern [_,_,_] x y z = x ∷ y ∷ z ∷ []
 []       ++Vr ys = ys
 (x ∷ xs) ++Vr ys = x ∷ (xs ++Vr ys)
 
+
+look here      (val ∷ _   ) = val
+look (there l) (_   ∷ vals) = look l vals
+
 lookup []           _    = []
 lookup (var ∷ vars) vals = look var vals ∷ lookup vars vals
-                         where look : σ ∈ Γ → Vals Γ → Ty⟦ σ ⟧
-                               look here      (val ∷ _   ) = val
-                               look (there l) (_   ∷ vals) = look l vals
-
 
 mapThere []       = []
 mapThere (x ∷ xs) = there x ∷ mapThere xs
