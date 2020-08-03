@@ -1,117 +1,14 @@
-------------------------
-open import Data.Bool using (Bool; true; false;  _∧_) public
-data Tri : Set
-------------------------
-open import Data.Nat  using (ℕ; zero; suc) public
-open import Data.List using (List; []; _∷_; _++_; replicate; concatMap; concat; map; take) public
-
-infix 2 _∈_
-data _∈_ {A : Set} : A → List A → Set where
-  here  : ∀{x xs}
-        → x ∈ x ∷ xs
-  there : ∀{x y xs} → x ∈ xs
-        → x ∈ y ∷ xs
-
-data Ty : Set
-Ty⟦_⟧ : Ty → Set
-
-variable
-  σ  τ  : Ty
-  σs τs Γ Γ′ Δ Δ′ Θ Θ′ : List Ty
-  τss : List (List Ty)
-------------------------
-data Vals : List Ty → Set
-
-data Vars : List Ty → List Ty → Set
-data Op   : List Ty → Ty → Set
-data Circ : List Ty → List Ty → Set
-
-Op⟦_⟧ : Op Θ τ   → Vals Θ → Ty⟦ τ ⟧
-Cr⟦_⟧ : Circ Γ Δ → Vals Γ → Vals Δ
-
-lookup : Vars Γ Δ → Vals Γ  → Vals Δ
-_++Vl_ : Vals Γ   → Vals Γ′ → Vals (Γ ++ Γ′)
-------------------------------------------------
-------------------------------------------------
-data Tri where
-  true  : Tri
-  dc    : Tri
-  false : Tri
-
-data Ty where
-  bool : Ty
-  tri  : Ty
-
-Ty⟦ bool ⟧ = Bool
-Ty⟦ tri  ⟧ = Tri
-
-data Vals where
-  []  : Vals []
-  _∷_ : Ty⟦ τ ⟧ → Vals τs → Vals (τ ∷ τs)
-
-data Vars where
-  []  : Vars Γ []
-  _∷_ : (σ ∈ Γ) → Vars Γ Δ → Vars Γ (σ ∷ Δ)
-
-pattern [_]     x     = x ∷ []
-pattern [_,_]   x y   = x ∷ y ∷ []
-pattern [_,_,_] x y z = x ∷ y ∷ z ∷ []
-
-data Op where
-  andT : Op [ tri , tri ]   tri
-  andB : Op [ bool , bool ] bool
-  ≡C   : Op [ tri , tri ]   bool
-
-data Circ where
-  ret  : Vars Γ Δ → Circ Γ Δ
-  oper : Op Γ τ   → Circ Γ [ τ ]
-  comp : Vars Γ Θ → Circ Θ Θ′ → Circ (Θ′ ++ Γ) Δ → Circ Γ Δ
-
-[]       ++Vl ys = ys
-(x ∷ xs) ++Vl ys = x ∷ (xs ++Vl ys)
-
-Op⟦ andT ⟧ [ true  , y     ] = y
-Op⟦ andT ⟧ [ false , _     ] = false
-Op⟦ andT ⟧ [ dc    , false ] = false
-Op⟦ andT ⟧ [ dc    , _     ] = dc
-
-Op⟦ andB ⟧ [ x , y ] = x ∧ y
-
-Op⟦ ≡C   ⟧ [ false , false ] = true
-Op⟦ ≡C   ⟧ [ false , _     ] = false
-Op⟦ ≡C   ⟧ [ true  , true  ] = true
-Op⟦ ≡C   ⟧ [ true  , _     ] = false
-Op⟦ ≡C   ⟧ [ dc    , _     ] = true
-
-Cr⟦ ret vars ⟧ vals = lookup vars vals
-Cr⟦ oper op  ⟧ vals = [ Op⟦ op ⟧ vals ]
-Cr⟦ comp vars c k ⟧ vals = Cr⟦ k ⟧ (Cr⟦ c ⟧ (lookup vars vals) ++Vl vals)
-
-lookup []           _    = []
-lookup (var ∷ vars) vals = look var vals ∷ lookup vars vals
-                         where look : σ ∈ Γ → Vals Γ → Ty⟦ σ ⟧
-                               look here      (val ∷ _   ) = val
-                               look (there l) (_   ∷ vals) = look l vals
-
-
-------------------------------------------------
-open import Data.Product using (_×_; Σ; Σ-syntax; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
+open import core public
 
 size   : Ty → ℕ
 toBool : Ty → List Ty
 
-encode : (τ : Ty) → Ty⟦ τ ⟧ → Vals (toBool τ)   -- Needed for Op conversion
-decode : (τ : Ty) → Vals (toBool τ) → Ty⟦ τ ⟧   -- For correctness checking
+encode : (τ : Ty) → Ty⟦ τ ⟧ → Vals (toBool τ)
+decode : (τ : Ty) → Vals (toBool τ) → Ty⟦ τ ⟧
 
 toBools : List Ty → List Ty
 encodes : (τs : List Ty) → Vals τs → Vals (toBools τs)
 decodes : (τs : List Ty) → Vals (toBools τs) → Vals τs
-
-compile : Circ Γ Δ → Circ (toBools Γ) (toBools Δ)
-
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; sym; inspect) renaming ([_] to In[_])
-correctness : (c : Circ Γ Δ) (bvals : Vals (toBools Γ))
-            → Cr⟦ c ⟧ (decodes Γ bvals) ≡ decodes Δ (Cr⟦ compile c ⟧ bvals)
 ------------------------------------------------
 
 size bool = 1
@@ -178,12 +75,6 @@ buildVars _        []       _  = []
 buildVars []       (x ∷ xs) ss = here ∷ buildVars [ x ] xs ss
 buildVars (p ∷ ps) (x ∷ xs) ss = mapThere (buildVars ps (x ∷ xs) ss)
 
-
-++-identityʳ : ∀{A : Set} (xs : List A)
-             → xs ++ [] ≡ xs
-++-identityʳ [] = refl
-++-identityʳ (x ∷ xs) rewrite ++-identityʳ xs = refl
-
 Vars-++ : Vars (Γ ++ []) Δ ≡ Vars Γ Δ
 Vars-++ {Γ} {Δ} rewrite ++-identityʳ Γ = refl
 allVars Γ rewrite sym (Vars-++ {Γ} {Γ}) = buildVars [] Γ []
@@ -198,7 +89,6 @@ encodeVars (var ∷ vars) = encodeVar var ++Vr encodeVars vars
                                                                 = buildVars (toBool x) [] (toBools σs) ++Vr mapsThere res
 
 ------------------------------------------------
--- Is compiled op, just (decode ∘ op ∘ encode) ?
 encodeCirc : (τs : List Ty) → Circ τs (toBools τs)
 decodeCirc : (τs : List Ty) → Circ (toBools τs) τs
 
@@ -224,23 +114,10 @@ toBools-++ {σ ∷ σs} {Γ′} =
   ≡⟨⟩
     toBools ((σ ∷ σs) ++ Γ′)
   ∎
-  where ++-assoc : {A : Set} → (xs ys zs : List A)
-                 → (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)
-        ++-assoc []       ys zs = refl
-        ++-assoc (x ∷ xs) ys zs = cong (x ∷_) (++-assoc xs ys zs)
 
 Circ-++  {Γ} {Γ′} {Δ} rewrite toBools-++ {Γ} {Γ′} = refl
 Circ-++′ {Γ} {Γ′} {Δ} k rewrite Circ-++ {Γ} {Γ′} {Δ} = k
 
-
 buildCirc pre Γ suf Δ circ = comp pickupVr circ pickupCr
                            where pickupVr = buildVars pre Γ suf
                                  pickupCr = ret (buildVars [] Δ (pre ++ Γ ++ suf))
-
-compile (ret vars)        = ret (encodeVars vars)
-compile (oper {Γ} {τ} op) = comp pickall (comp pickall (decodeCirc Γ) matchOp) matchEnc
-                          where pickall   = allVars (toBools Γ)
-                                matchOp   = buildCirc [] Γ (toBools Γ) [ τ ] (oper op)
-                                matchEnc  = buildCirc [] [ τ ] (toBools Γ) (toBools [ τ ]) (encodeCirc [ τ ])
-
-compile (comp {Γ} {Θ} {Θ′} {Δ} vars c k) = comp (encodeVars vars) (compile c) (Circ-++′ {Θ′} {Γ} (compile k))
