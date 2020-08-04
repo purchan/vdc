@@ -122,9 +122,19 @@ dec∘enc-s : decodes τs ∘ encodes τs ≡ id
 dec∘enc-s {[]}     = extensionality λ{[] → refl}
 dec∘enc-s {σ ∷ σs} = extensionality λ{(vl ∷ vals) → pf σ σs vl vals}
   where
+    split-ri : (vals : Vals Γ) → splitVals (vals ++Vl []) ≡ ⟨ vals , ⟨ [] , refl ⟩ ⟩
+    split-ri [] = refl
+    split-ri (vl ∷ vals) rewrite split-ri vals = refl
+
+    split-rc : (vals : Vals Γ) (vals₁ : Vals Θ) (vals₂ : Vals Θ′)
+             → splitVals (vals ++Vl (vals₁ ++Vl vals₂)) ≡ ⟨ vals , ⟨ vals₁ ++Vl vals₂ , refl ⟩ ⟩
+    split-rc []          vals₁ vals₂ = refl
+    split-rc (vl ∷ vals) vals₁ vals₂ rewrite split-rc vals vals₁ vals₂ = refl
+
     split-bv : (σ : Ty) (σs : List Ty) (vl : Ty⟦ σ ⟧) (vals : Vals σs)
              → splitVals {toBool σ} {toBools σs} (encode σ vl ++Vl encodes σs vals) ≡ ⟨ encode σ vl , ⟨ encodes σs vals , refl ⟩ ⟩
-    split-bv σ σs vl vals = {!!}
+    split-bv σ []        vl []           = split-ri (encode σ vl)
+    split-bv σ (σ′ ∷ σs) vl (vl′ ∷ vals) = split-rc (encode σ vl) (encode σ′ vl′) (encodes σs vals)
 
     pf : (σ : Ty) (σs : List Ty) (vl : Ty⟦ σ ⟧ ) (vals : Vals σs)
        → (decodes (σ ∷ σs) ∘ (encodes (σ ∷ σs))) (vl ∷ vals) ≡ vl ∷ vals
