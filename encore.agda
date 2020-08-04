@@ -34,15 +34,6 @@ postulate
       -----------------------
     → f ≡ g
 
-Circ′-++-≡ : (Γ′ : List Ty) (circ : Circ′ Γ Δ) (bval : Vals Γ) (bvalΓ′ : Vals Γ′)
-           → Cr′⟦ Circ′-++ Γ′ circ ⟧ (bval ++Vl bvalΓ′) ≡ Cr′⟦ circ ⟧ bval
-Circ′-++-≡ Γ′ circ bval bvalΓ′ =
-  begin
-    Cr′⟦ Circ′-++ Γ′ circ ⟧ (bval ++Vl bvalΓ′)
-  ≡⟨ {!!} ⟩
-    Cr′⟦ circ ⟧ bval
-  ∎
-
 lookup-mapThere : (vars : Vars Γ Δ) (vl : Ty⟦ τ ⟧) (vals : Vals Γ)
                 → lookup (mapThere vars) (vl ∷ vals) ≡ lookup vars vals
 lookup-mapThere []          vl vals = refl
@@ -71,6 +62,54 @@ lookup-ini {σ ∷ σs} = extensionality λ{(vl ∷ vals) →
   ≡⟨ cong (vl ∷_) (cong-app (lookup-ini {σs}) vals) ⟩
     id (vl ∷ vals)
   ∎}
+
+look-∈-suf : (vr : σ ∈ Γ) (vals : Vals Γ) (vals′ : Vals Γ′)
+            → look (∈-suf vr) (vals ++Vl vals′) ≡ look vr vals
+look-∈-suf here       (σ ∷ _)    _     = refl
+look-∈-suf (there pf) (_ ∷ vals) vals′ = look-∈-suf pf vals vals′
+
+lookup-suf : (vars : Vars Γ Δ) (valΓ : Vals Γ) (valΓ′ : Vals Γ′)
+           → lookup (sufVars Γ′ vars) (valΓ ++Vl valΓ′) ≡ lookup vars valΓ
+lookup-suf {[]}     {Γ′ = Γ′} []          []          valΓ′ = refl
+lookup-suf {σ ∷ σs} {Γ′ = Γ′} []          (vl ∷ vals) valΓ′ = refl
+lookup-suf {σ ∷ σs} {Γ′ = Γ′} (vr ∷ vars) (vl ∷ vals) valΓ′ =
+  begin
+    lookup (sufVars Γ′ (vr ∷ vars)) ((vl ∷ vals) ++Vl valΓ′)
+  ≡⟨ cong (_∷ lookup (sufVars Γ′ vars) (vl ∷ (vals ++Vl valΓ′))) (look-∈-suf vr (vl ∷ vals) valΓ′) ⟩
+    look vr (vl ∷ vals) ∷ lookup (sufVars Γ′ vars) ((vl ∷ vals) ++Vl valΓ′)
+  ≡⟨ cong (look vr (vl ∷ vals) ∷_) (lookup-suf vars (vl ∷ vals) valΓ′) ⟩
+    look vr (vl ∷ vals) ∷ lookup vars (vl ∷ vals)
+  ≡⟨⟩
+    lookup (vr ∷ vars) (vl ∷ vals)
+  ∎
+
+lookup-sufini : (valΓ : Vals Γ) (valΓ′ : Vals Γ′)
+              → lookup (sufVars Γ′ (iniVars Γ)) (valΓ ++Vl valΓ′) ≡ valΓ
+lookup-sufini {Γ} {Γ′} valΓ valΓ′ =
+  begin
+    lookup (sufVars Γ′ (iniVars Γ)) (valΓ ++Vl valΓ′)
+  ≡⟨ lookup-suf (iniVars Γ) valΓ valΓ′ ⟩
+    lookup (iniVars Γ) valΓ
+  ≡⟨ cong-app lookup-ini valΓ ⟩
+    valΓ
+  ∎
+
+Circ′-++-≡ : (Γ′ : List Ty) (circ : Circ′ Γ Δ) (bvalΓ : Vals Γ) (bvalΓ′ : Vals Γ′)
+           → Cr′⟦ Circ′-++ Γ′ circ ⟧ (bvalΓ ++Vl bvalΓ′) ≡ Cr′⟦ circ ⟧ bvalΓ
+Circ′-++-≡ {Γ} {Δ} Γ′ circ bvalΓ bvalΓ′ =
+  begin
+    Cr′⟦ Circ′-++ Γ′ circ ⟧ (bvalΓ ++Vl bvalΓ′)
+  ≡⟨⟩
+    Cr′⟦ comp (sufVars Γ′ (iniVars Γ)) circ (ret (sufVars (Γ ++ Γ′) (iniVars Δ))) ⟧ (bvalΓ ++Vl bvalΓ′)
+  ≡⟨⟩
+    Cr′⟦ ret (sufVars (Γ ++ Γ′) (iniVars Δ)) ⟧ (Cr′⟦ circ ⟧ (lookup (sufVars Γ′ (iniVars Γ)) (bvalΓ ++Vl bvalΓ′)) ++Vl (bvalΓ ++Vl bvalΓ′))
+  ≡⟨ cong (λ pf → Cr′⟦ ret (sufVars (Γ ++ Γ′) (iniVars Δ)) ⟧ (Cr′⟦ circ ⟧ pf ++Vl (bvalΓ ++Vl bvalΓ′))) (lookup-sufini bvalΓ bvalΓ′)  ⟩
+    Cr′⟦ ret (sufVars (Γ ++ Γ′) (iniVars Δ)) ⟧ (Cr′⟦ circ ⟧  bvalΓ ++Vl (bvalΓ ++Vl bvalΓ′))
+  ≡⟨⟩
+    lookup (sufVars (Γ ++ Γ′) (iniVars Δ)) (Cr′⟦ circ ⟧ bvalΓ ++Vl (bvalΓ ++Vl bvalΓ′))
+  ≡⟨ lookup-sufini (Cr′⟦ circ ⟧ bvalΓ) (bvalΓ ++Vl bvalΓ′) ⟩
+    Cr′⟦ circ ⟧ bvalΓ
+  ∎
 
 dec∘enc : decode τ ∘ encode τ ≡ id
 dec∘enc {bool} = extensionality λ{b → refl}
