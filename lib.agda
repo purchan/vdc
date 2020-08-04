@@ -2,7 +2,7 @@ open import Data.Bool using (Bool; true; false;  _∧_) public
 open import Data.Nat  using (ℕ; zero; suc) public
 open import Data.List using (List; []; _∷_; _++_; replicate; concatMap; concat; map; take) public
 open import Data.Product using (_×_; Σ; Σ-syntax; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩) public
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong-app; sym; subst; inspect) renaming ([_] to In[_]) public
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong-app; trans; sym; subst; inspect) renaming ([_] to In[_]) public
 open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎) public
 open import Function using (id; _∘_) public
 ------------------------------------------------
