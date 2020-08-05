@@ -1,15 +1,17 @@
 open import encprf public
 
-Circ′-toBools-++ : Circ′ (toBools (Γ ++ Γ′)) Δ ≡ Circ′ (toBools Γ ++ toBools Γ′) Δ
-Circ′-toBools-++ {Γ} {Γ′} rewrite toBools-++ {Γ} {Γ′} = refl
+Circ′-toBools-++ : (Δ : List Ty) → Circ′ (toBools Γ ++ toBools Γ′) Δ ≡ Circ′ (toBools (Γ ++ Γ′)) Δ
+Circ′-toBools-++ {Γ} {Γ′} Δ rewrite toBools-++ {Γ} {Γ′} = refl
 
 compile : Circ Γ Δ → Circ′ (toBools Γ) (toBools Δ)
 compile (ret vars)        = ret (encodeVars vars)
 compile (oper {Γ} {τ} op) = comp pick O∘D (sufCirc′ (toBools Γ) (enc [ τ ]))
                           where pick = iniVars (toBools Γ)
                                 O∘D  = comp pick (dec Γ) (sufCirc′ (toBools Γ) (oper op))
-compile (comp {Γ} {Θ} {Θ′} {Δ} vars c k) = comp (encodeVars vars) (compile c) (subst id pf (compile k))
-                                         where pf = Circ′-toBools-++ {Θ′} {Γ} {toBools Δ}
+compile (comp {Γ} {Θ} {Θ′} {Δ} vars c k) = comp (encodeVars vars) (compile c) compk
+                                         where pf = Circ′-toBools-++ {Θ′} {Γ} (toBools Δ)
+                                               compk : Circ′ (toBools Θ′ ++ toBools Γ) (toBools Δ)
+                                               compk rewrite pf = compile k
 
 correctness : (c : Circ Γ Δ) (bvals : Vals (toBools Γ))
             → Cr⟦ c ⟧ (decodes Γ bvals) ≡ decodes Δ (Cr′⟦ compile c ⟧ bvals)
@@ -64,9 +66,24 @@ correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c k) bvals =
     Cr⟦ comp vars c k ⟧ (decodes Γ bvals)
   ≡⟨⟩
     Cr⟦ k ⟧ (Cr⟦ c ⟧ (lookup vars (decodes Γ bvals)) ++Vl (decodes Γ bvals))
+  ≡⟨ cong (λ{pf → Cr⟦ k ⟧ (Cr⟦ c ⟧ pf ++Vl (decodes Γ bvals))}) (lookup-dec vars bvals) ⟩
+    Cr⟦ k ⟧ (Cr⟦ c ⟧ (decodes Θ leb) ++Vl (decodes Γ bvals))
+  ≡⟨ cong (λ{pf → Cr⟦ k ⟧ (pf ++Vl (decodes Γ bvals))}) (correctness c leb) ⟩
+    Cr⟦ k ⟧ (decodes Θ′ (Cr′⟦ compile c ⟧ leb) ++Vl (decodes Γ bvals))
   ≡⟨ {!!} ⟩
-    decodes Δ (Cr′⟦ (subst id pf (compile k))⟧ (Cr′⟦ compile c ⟧ (lookup (encodeVars vars) bvals) ++Vl bvals))
-  ≡⟨⟩
-    decodes Δ (Cr′⟦ comp (encodeVars vars) (compile c) (subst id pf (compile k))⟧ bvals)
+    Cr⟦ k ⟧ (decodes (Θ′ ++ Γ) clb′)
+  ≡⟨ correctness k clb′ ⟩
+    decodes Δ (Cr′⟦ compile k ⟧ clb′)
+  ≡⟨ {!!} ⟩
+    decodes Δ (Cr′⟦ comp (encodeVars vars) (compile c) compk ⟧ bvals)
+  ≡⟨ {!!} ⟩
+    decodes Δ (Cr′⟦ compile (comp vars c k) ⟧ bvals)
   ∎
-  where pf = Circ′-toBools-++ {Θ′} {Γ} {toBools Δ}
+  where leb = lookup (encodeVars vars) bvals
+        clb = Cr′⟦ compile c ⟧ leb ++Vl bvals
+
+        compk : Circ′ (toBools Θ′ ++ toBools Γ) (toBools Δ)
+        compk rewrite Circ′-toBools-++ {Θ′} {Γ} (toBools Δ) = compile k
+
+        clb′  : Vals (toBools (Θ′ ++ Γ))
+        clb′ rewrite sym (toBools-++ {Θ′} {Γ}) = clb
