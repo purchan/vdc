@@ -32,6 +32,8 @@ Cr′⟦_⟧ : Circ′ Γ Δ → Vals Γ → Vals Δ
 
 toCirc′ : Circ Γ Δ → Circ′ Γ Δ
 
+sufCirc′ : (Γ′ : List Ty) → Circ′ Γ Δ → Circ′ (Γ ++ Γ′) Δ
+
 ------------------------------------------------
 size bool = 1
 size tri  = 2
@@ -119,3 +121,7 @@ Cr′⟦ dec Γ ⟧  = decodes Γ
 toCirc′ (ret vars) = ret vars
 toCirc′ (oper op)  = oper op
 toCirc′ (comp vars c k) = comp vars (toCirc′ c) (toCirc′ k)
+
+sufCirc′ {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
+                         where pick₁ = sufVars Γ′ (iniVars Γ)
+                               pick₂ = sufVars (Γ ++ Γ′) (iniVars Δ)

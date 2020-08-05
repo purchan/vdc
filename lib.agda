@@ -5,6 +5,18 @@ open import Data.Product using (_×_; Σ; Σ-syntax; proj₁; proj₂) renaming 
 open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong-app; trans; sym; subst; inspect) renaming ([_] to In[_]) public
 open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎) public
 open import Function using (id; _∘_) public
+
+postulate
+  extensionality : ∀ {A B : Set} {f g : A → B}
+    → (∀ (x : A) → f x ≡ g x)
+      -----------------------
+    → f ≡ g
+  {-
+  ∀-extensionality : ∀ {A : Set} {B : A → Set} {f g : ∀(x : A) → B x}
+    → (∀ (x : A) → f x ≡ g x)
+      -----------------------
+    → f ≡ g
+  -}
 ------------------------------------------------
 
 infix 2 _∈_
