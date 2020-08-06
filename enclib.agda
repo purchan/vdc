@@ -5,8 +5,12 @@ toBool : Ty → List Ty
 
 encode : (τ : Ty) → Ty⟦ τ ⟧ → Vals (toBool τ)
 decode : (τ : Ty) → Vals (toBool τ) → Ty⟦ τ ⟧
-------------------------
+
 toBools : List Ty → List Ty
+toBools-++ : toBools Γ ++ toBools Γ′ ≡ toBools (Γ ++ Γ′)
+
+_++bVl_ : Vals (toBools Γ) → Vals (toBools Γ′) → Vals (toBools (Γ ++ Γ′))
+------------------------
 
 data Vals′ : (τs : List Ty) → Vals (toBools τs) → Set
 
@@ -24,13 +28,10 @@ encodeVar  : σ ∈ Γ → Vars (toBools Γ) (toBool σ)
 encodeVars : Vars Γ Δ → Vars (toBools Γ) (toBools Δ)
 
 ------------------------
-toBools-++ : toBools Γ ++ toBools Γ′ ≡ toBools (Γ ++ Γ′)
 
 data Circ′ : List Ty → List Ty → Set
 
-Cr′⟦_⟧ : Circ′ Γ Δ → Vals Γ → Vals Δ
-
-toCirc′ : Circ Γ Δ → Circ′ Γ Δ
+Cr′⟦_⟧ : Circ′ Γ Δ → Vals (toBools Γ) → Vals (toBools Δ)
 
 sufCirc′ : (Γ′ : List Ty) → Circ′ Γ Δ → Circ′ (Γ ++ Γ′) Δ
 
@@ -48,8 +49,25 @@ decode tri  [ false , true  ] = true
 decode tri  [ false , false ] = false
 decode tri  [ true  , _     ] = dc
 
-------------------------
+
 toBools = concatMap toBool
+toBools-++ {[]} = refl
+toBools-++ {σ ∷ σs} {Γ′} =
+  begin
+    toBools (σ ∷ σs) ++ toBools Γ′
+  ≡⟨⟩
+    (toBool σ ++ toBools σs) ++ toBools Γ′
+  ≡⟨ ++-assoc (toBool σ) (toBools σs) (toBools Γ′) ⟩
+    toBool σ ++ (toBools σs ++ toBools Γ′)
+  ≡⟨ cong (toBool σ ++_) (toBools-++ {σs} {Γ′}) ⟩
+    toBool σ ++ toBools (σs ++ Γ′)
+  ≡⟨⟩
+    toBools ((σ ∷ σs) ++ Γ′)
+  ∎
+
+_++bVl_ {Γ} {Γ′} bvalΓ bvalΓ′ rewrite sym (toBools-++ {Γ} {Γ′}) = bvalΓ ++Vl bvalΓ′
+
+------------------------
 
 data Vals′ where
   nil  : Vals′ [] []
@@ -87,40 +105,16 @@ encodeVars []          = []
 encodeVars (vr ∷ vars) = encodeVar vr ++Vr encodeVars vars
 
 ------------------------
-toBools-++ {[]} = refl
-toBools-++ {σ ∷ σs} {Γ′} =
-  begin
-    toBools (σ ∷ σs) ++ toBools Γ′
-  ≡⟨⟩
-    (toBool σ ++ toBools σs) ++ toBools Γ′
-  ≡⟨ ++-assoc (toBool σ) (toBools σs) (toBools Γ′) ⟩
-    toBool σ ++ (toBools σs ++ toBools Γ′)
-  ≡⟨ cong (toBool σ ++_) (toBools-++ {σs} {Γ′}) ⟩
-    toBool σ ++ toBools (σs ++ Γ′)
-  ≡⟨⟩
-    toBools ((σ ∷ σs) ++ Γ′)
-  ∎
-
-
 data Circ′ where
   ret  : Vars Γ Δ → Circ′ Γ Δ
   oper : Op Γ τ   → Circ′ Γ [ τ ]
   comp : Vars Γ Θ → Circ′ Θ Θ′ → Circ′ (Θ′ ++ Γ) Δ → Circ′ Γ Δ
 
-  enc  : (Γ : List Ty) → Circ′ Γ (toBools Γ)
-  dec  : (Γ : List Ty) → Circ′ (toBools Γ) Γ
-
-Cr′⟦ ret vars ⟧ vals = lookup vars vals
-Cr′⟦ oper op  ⟧ vals = [ Op⟦ op ⟧ vals ]
-Cr′⟦ comp vars c k ⟧ vals = Cr′⟦ k ⟧ (Cr′⟦ c ⟧ (lookup vars vals) ++Vl vals)
-
-Cr′⟦ enc Γ ⟧  = encodes Γ
-Cr′⟦ dec Γ ⟧  = decodes Γ
-
-
-toCirc′ (ret vars) = ret vars
-toCirc′ (oper op)  = oper op
-toCirc′ (comp vars c k) = comp vars (toCirc′ c) (toCirc′ k)
+Cr′⟦ ret vars ⟧        bvals = lookup (encodeVars vars) bvals
+Cr′⟦ oper {Γ} {τ} op ⟧ bvals = encodes [ τ ] [ Op⟦ op ⟧ (decodes Γ bvals) ]
+Cr′⟦ comp {Γ} {Θ} {Θ′} {Δ} vars c k ⟧ bvals =
+  Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals)
+  where bvalΘ′ = Cr′⟦ c ⟧ (lookup (encodeVars vars) bvals)
 
 sufCirc′ {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
                          where pick₁ = sufVars Γ′ (iniVars Γ)

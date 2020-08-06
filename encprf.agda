@@ -100,7 +100,6 @@ decode-++Vl : (bvalσ : Vals (toBool σ)) (bvalσs : Vals (toBools σs))
             → decode σ bvalσ ∷ decodes σs bvalσs ≡ decodes (σ ∷ σs) (bvalσ ++Vl bvalσs)
 decode-++Vl {σ} {σs} bvalσ bvalσs rewrite split-bv σ σs bvalσ bvalσs = refl
 
-
 dec-s-lookup : (vars₁ : Vars Γ (toBool σ)) (vars₂ : Vars Γ (toBools σs)) (vals : Vals Γ)
              → decode σ (lookup vars₁ vals) ∷ decodes σs (lookup vars₂ vals)
              ≡ decodes (σ ∷ σs) (lookup (vars₁ ++Vr vars₂) vals)
@@ -146,7 +145,7 @@ lookup-dec {σ ∷ σs} {τ ∷ τs} (vr ∷ vars) bvals =
   ∎
 
 ------------------------
-
+{-
 Circ′-++-≡ : (Γ′ : List Ty) (circ : Circ′ Γ Δ) (bvalΓ : Vals Γ) (bvalΓ′ : Vals Γ′)
            → Cr′⟦ sufCirc′ Γ′ circ ⟧ (bvalΓ ++Vl bvalΓ′) ≡ Cr′⟦ circ ⟧ bvalΓ
 Circ′-++-≡ {Γ} {Δ} Γ′ circ bvalΓ bvalΓ′ =
@@ -163,6 +162,7 @@ Circ′-++-≡ {Γ} {Δ} Γ′ circ bvalΓ bvalΓ′ =
   ≡⟨ lookup-sufini (Cr′⟦ circ ⟧ bvalΓ) (bvalΓ ++Vl bvalΓ′) ⟩
     Cr′⟦ circ ⟧ bvalΓ
   ∎
+-}
 
 dec∘enc : decode τ ∘ encode τ ≡ id
 dec∘enc {bool} = extensionality λ{b → refl}
@@ -186,6 +186,7 @@ dec∘enc-s {σ ∷ σs} = extensionality λ{(vl ∷ vals) → pf σ σs vl vals
         id (vl ∷ vals)
       ∎
 
+{-
 dec∘enc-Crd : decodes Γ ∘ Cr′⟦ comp (iniVars (toBools Γ)) (dec Γ) (sufCirc′ (toBools Γ) (enc Γ)) ⟧ ≡ decodes Γ
 dec∘enc-Crd {Γ} = extensionality λ{bvals →
   begin
@@ -203,3 +204,4 @@ dec∘enc-Crd {Γ} = extensionality λ{bvals →
     decodes Γ bvals
   ∎
   }
+-}
