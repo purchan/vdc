@@ -6,20 +6,17 @@ toBool : Ty → List Ty
 encode : (τ : Ty) → Ty⟦ τ ⟧ → Vals (toBool τ)
 decode : (τ : Ty) → Vals (toBool τ) → Ty⟦ τ ⟧
 
-toBools : List Ty → List Ty
-toBools-++ : toBools Γ ++ toBools Γ′ ≡ toBools (Γ ++ Γ′)
-
-_++bVl_ : Vals (toBools Γ) → Vals (toBools Γ′) → Vals (toBools (Γ ++ Γ′))
 ------------------------
+toBools : List Ty → List Ty
 
 data Vals′ : (τs : List Ty) → Vals (toBools τs) → Set
 
-splitVals  : {σs : List Ty} {τs : List Ty} (valστ : Vals (σs ++ τs))
+splitVals  : (valστ : Vals (σs ++ τs))
            → Σ[ valσ ∈ Vals σs ] Σ[ valτ ∈ Vals τs ] (valστ ≡ valσ ++Vl valτ)
 toVals′  : (τs : List Ty) (bvals : Vals (toBools τs)) → Vals′ τs bvals
-decodes′ : (τs : List Ty) (bvals : Vals (toBools τs))
-         → Vals′ τs bvals → Vals τs
+decodes′ : (τs : List Ty) (bvals : Vals (toBools τs)) → Vals′ τs bvals → Vals τs
 
+_++bVl_ : Vals (toBools Γ) → Vals (toBools Γ′) → Vals (toBools (Γ ++ Γ′))
 ------------------------
 encodes : (τs : List Ty) → Vals τs → Vals (toBools τs)
 decodes : (τs : List Ty) → Vals (toBools τs) → Vals τs
@@ -32,8 +29,6 @@ encodeVars : Vars Γ Δ → Vars (toBools Γ) (toBools Δ)
 data Circ′ : List Ty → List Ty → Set
 
 Cr′⟦_⟧ : Circ′ Γ Δ → Vals (toBools Γ) → Vals (toBools Δ)
-
-sufCirc′ : (Γ′ : List Ty) → Circ′ Γ Δ → Circ′ (Γ ++ Γ′) Δ
 
 ------------------------------------------------
 size bool = 1
@@ -49,23 +44,8 @@ decode tri  [ false , true  ] = true
 decode tri  [ false , false ] = false
 decode tri  [ true  , _     ] = dc
 
-
-toBools = concatMap toBool
-toBools-++ {[]} = refl
-toBools-++ {σ ∷ σs} {Γ′} =
-  begin
-    toBools (σ ∷ σs) ++ toBools Γ′
-  ≡⟨⟩
-    (toBool σ ++ toBools σs) ++ toBools Γ′
-  ≡⟨ ++-assoc (toBool σ) (toBools σs) (toBools Γ′) ⟩
-    toBool σ ++ (toBools σs ++ toBools Γ′)
-  ≡⟨ cong (toBool σ ++_) (toBools-++ {σs} {Γ′}) ⟩
-    toBool σ ++ toBools (σs ++ Γ′)
-  ≡⟨⟩
-    toBools ((σ ∷ σs) ++ Γ′)
-  ∎
-
 ------------------------
+toBools = concatMap toBool
 
 data Vals′ where
   nil  : Vals′ [] []
@@ -87,7 +67,7 @@ toVals′ (τ ∷ τs) .(bvalτ ++Vl bvalτs) | ⟨ bvalτ , ⟨ bvalτs , refl 
 decodes′ []       ._                 nil                     = []
 decodes′ (τ ∷ τs) .(bval ++Vl bvals) (cons bval bvals vals′) = decode τ bval ∷ decodes′ τs bvals vals′
 
--- _++bVl_ {Γ} {Γ′} bvalΓ bvalΓ′ rewrite sym (toBools-++ {Γ} {Γ′}) = bvalΓ ++Vl bvalΓ′
+
 _++bVl_ {[]}     {Γ′} []                   bvalΓ′ = bvalΓ′
 _++bVl_ {σ ∷ σs} {Γ′} bvalΓ                bvalΓ′ with splitVals {toBool σ} {toBools σs} bvalΓ
 _++bVl_ {σ ∷ σs} {Γ′} .(bvalσ ++Vl bvalσs) bvalΓ′    | ⟨ bvalσ , ⟨ bvalσs , refl ⟩ ⟩
@@ -101,9 +81,7 @@ decodes τs bvals = decodes′ τs bvals (toVals′ τs bvals)
 
 
 encodeVar {σ} {σ ∷ σs} here      = sufVars (toBools σs) (iniVars (toBool σ))
-encodeVar {σ} {x ∷ σs} (there l) with encodeVar {σ} {σs} l
-...                                 | evar
-                                 = preVars (toBool x) evar
+encodeVar {σ} {x ∷ σs} (there l) = preVars (toBool x) (encodeVar {σ} {σs} l)
 
 encodeVars []          = []
 encodeVars (vr ∷ vars) = encodeVar vr ++Vr encodeVars vars
@@ -119,7 +97,3 @@ Cr′⟦ oper {Γ} {τ} op ⟧ bvals = encodes [ τ ] [ Op⟦ op ⟧ (decodes Γ
 Cr′⟦ comp {Γ} {Θ} {Θ′} {Δ} vars c k ⟧ bvals =
   Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals)
   where bvalΘ′ = Cr′⟦ c ⟧ (lookup (encodeVars vars) bvals)
-
-sufCirc′ {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
-                         where pick₁ = sufVars Γ′ (iniVars Γ)
-                               pick₂ = sufVars (Γ ++ Γ′) (iniVars Δ)

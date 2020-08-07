@@ -1,18 +1,9 @@
 open import Data.Bool using (Bool; true; false;  _∧_) public
-open import Data.Nat  using (ℕ; zero; suc) public
-open import Data.List using (List; []; _∷_; _++_; replicate; concatMap; concat; map; take) public
-open import Data.Product using (_×_; Σ; Σ-syntax; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩) public
-open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; cong-app; trans; sym; inspect) renaming ([_] to In[_]) public
-
-open Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎) public
-open import Function using (id; _∘_) public
-
-postulate
-  extensionality : ∀ {A B : Set} {f g : A → B}
-    → (∀ (x : A) → f x ≡ g x)
-      -----------------------
-    → f ≡ g
-------------------------------------------------
+open import Data.Nat  using (ℕ) public
+open import Data.List using (List; []; _∷_; _++_; replicate; concatMap) public
+open import Data.Product using (Σ; Σ-syntax) renaming (_,_ to ⟨_,_⟩) public
+open import Relation.Binary.PropositionalEquality using (_≡_; refl; cong; trans; sym; inspect) renaming ([_] to In[_]) public
+open        Relation.Binary.PropositionalEquality.≡-Reasoning using (begin_; _≡⟨⟩_; step-≡; _∎) public
 
 infix 2 _∈_
 data _∈_ {A : Set} : A → List A → Set where
@@ -25,13 +16,8 @@ data _∈_ {A : Set} : A → List A → Set where
       →  x ∈ xs → x ∈ xs ++ ys
 ∈-suf           here      = here
 ∈-suf {ys = ys} (there l) = there (∈-suf {ys = ys} l)
-------------------------------------------------
-{-
-++-identityʳ : ∀{A : Set} (xs : List A)
-             → xs ++ [] ≡ xs
-++-identityʳ [] = refl
-++-identityʳ (x ∷ xs) rewrite ++-identityʳ xs = refl
--}
+
+------------------------
 
 ++-assoc : {A : Set} → (xs ys zs : List A)
          → (xs ++ ys) ++ zs ≡ xs ++ (ys ++ zs)

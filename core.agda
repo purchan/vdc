@@ -12,7 +12,7 @@ data Vals : List Ty → Set
 _++Vl_ : Vals Γ   → Vals Γ′ → Vals (Γ ++ Γ′)
 
 data Vars : List Ty → List Ty → Set
-_++Vr_  : Vars Γ Δ → Vars Γ Δ′ → Vars Γ (Δ ++ Δ′)
+_++Vr_ : Vars Γ Δ → Vars Γ Δ′ → Vars Γ (Δ ++ Δ′)
 
 look : σ ∈ Γ → Vals Γ → Ty⟦ σ ⟧
 lookup : Vars Γ Δ → Vals Γ  → Vals Δ
