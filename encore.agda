@@ -60,17 +60,7 @@ correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c k) bvals =
                    → (bvalσ : Vals (toBool σ)) (bvalσs : Vals (toBools σs)) (bvalΓ′ : Vals (toBools Γ′))
                    → bvalσ ++Vl (_++bVl_ {σs} {Γ′} bvalσs bvalΓ′)
                    ≡ _++bVl_ {σ ∷ σs} {Γ′} (bvalσ ++Vl bvalσs) bvalΓ′
-        ++Vl-++bVl {σ} {σs} {Γ′} bvalσ bvalσs bvalΓ′ = {!!}
-
-          -- sym (trans (trans pf₁ pf₂) pf₃)
-          {-
-          where pf₁ = cong Vals (sym (toBools-++ {σ ∷ σs} {Γ′}))
-                -- Vals (toBools (σ ∷ σs ++ Γ′)) ≡ Vals (toBools (σ ∷ σs) ++ toBools Γ′)
-                pf₂ = cong Vals (++-assoc (toBool σ) (toBools σs) (toBools Γ′))
-                -- Vals ((toBool σ ++ toBools σs) ++ toBools Γ′) ≡ Vals (toBool σ ++ toBools σs ++ toBools Γ′)
-                pf₃ = cong (λ{pf → Vals (toBool σ ++ pf)}) ((toBools-++ {σs} {Γ′}))
-                -- Vals (toBool σ ++ toBools σs ++ toBools Γ′) ≡ Vals (toBool σ ++ toBools (σs ++ Γ′))
-          -}
+        ++Vl-++bVl {σ} {σs} {Γ′} bvalσ bvalσs bvalΓ′ rewrite split-bv σ σs bvalσ bvalσs = refl
 
         decodes-++Vl : {Γ Γ′ : List Ty}
                      → (bvalΓ : Vals (toBools Γ)) (bvalΓ′ : Vals (toBools Γ′))
