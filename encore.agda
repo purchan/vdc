@@ -1,13 +1,16 @@
 open import encprf public
 
-compile : Circ Γ Δ → Circ′ Γ Δ
-compile (ret vars)      = ret vars
-compile (oper op)       = oper op
-compile (comp vars c k) = comp vars (compile c) (compile k)
+Cr′⟦_⟧ : Circ Γ Δ → Vals (toBools Γ) → Vals (toBools Δ)
+
+Cr′⟦ ret vars ⟧        bvals = lookup (encodeVars vars) bvals
+Cr′⟦ oper {Γ} {τ} op ⟧ bvals = encodes [ τ ] [ Op⟦ op ⟧ (decodes Γ bvals) ]
+Cr′⟦ comp {Γ} {Θ} {Θ′} {Δ} vars c k ⟧ bvals =
+  Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals)
+  where bvalΘ′ = Cr′⟦ c ⟧ (lookup (encodeVars vars) bvals)
 
 
 correctness : (c : Circ Γ Δ) (bvals : Vals (toBools Γ))
-            → Cr⟦ c ⟧ (decodes Γ bvals) ≡ decodes Δ (Cr′⟦ compile c ⟧ bvals)
+            → Cr⟦ c ⟧ (decodes Γ bvals) ≡ decodes Δ (Cr′⟦ c ⟧ bvals)
 correctness {Γ} {τs} (ret vars) bvals =
   begin
     Cr⟦ ret vars ⟧ (decodes Γ bvals)
@@ -16,7 +19,7 @@ correctness {Γ} {τs} (ret vars) bvals =
   ≡⟨ lookup-dec vars bvals ⟩
     decodes τs (lookup (encodeVars vars) bvals)
   ≡⟨⟩
-    decodes τs (Cr′⟦ compile (ret vars) ⟧ bvals)
+    decodes τs (Cr′⟦ ret vars ⟧ bvals)
   ∎
 
 correctness (oper {Γ} {τ} op) bvals =
@@ -27,7 +30,7 @@ correctness (oper {Γ} {τ} op) bvals =
   ≡⟨ sym (decs-encs {[ τ ]} [ Op⟦ op ⟧ (decodes Γ bvals) ]) ⟩
     decodes [ τ ] (encodes [ τ ] [ Op⟦ op ⟧ (decodes Γ bvals) ])
   ≡⟨⟩
-    decodes [ τ ] (Cr′⟦ compile (oper op) ⟧ bvals)
+    decodes [ τ ] (Cr′⟦ oper op ⟧ bvals)
   ∎
 
 correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c k) bvals =
@@ -42,9 +45,9 @@ correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c k) bvals =
   ≡⟨ cong Cr⟦ k ⟧ (decs-++Vl {Θ′} {Γ} bvalΘ′ bvals) ⟩
     Cr⟦ k ⟧ (decodes (Θ′ ++ Γ) (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals))
   ≡⟨ correctness k (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals) ⟩
-    decodes Δ (Cr′⟦ compile k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals))
+    decodes Δ (Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals))
   ≡⟨⟩
-    decodes Δ (Cr′⟦ compile (comp vars c k) ⟧ bvals)
+    decodes Δ (Cr′⟦ comp vars c k ⟧ bvals)
   ∎
   where leb = lookup (encodeVars vars) bvals
-        bvalΘ′ = Cr′⟦ compile c ⟧ leb
+        bvalΘ′ = Cr′⟦ c ⟧ leb

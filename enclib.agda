@@ -24,12 +24,6 @@ decodes : (τs : List Ty) → Vals (toBools τs) → Vals τs
 encodeVar  : σ ∈ Γ → Vars (toBools Γ) (toBool σ)
 encodeVars : Vars Γ Δ → Vars (toBools Γ) (toBools Δ)
 
-------------------------
-
-data Circ′ : List Ty → List Ty → Set
-
-Cr′⟦_⟧ : Circ′ Γ Δ → Vals (toBools Γ) → Vals (toBools Δ)
-
 ------------------------------------------------
 size bool = 1
 size tri  = 2
@@ -85,15 +79,3 @@ encodeVar {σ} {x ∷ σs} (there l) = preVars (toBool x) (encodeVar {σ} {σs} 
 
 encodeVars []          = []
 encodeVars (vr ∷ vars) = encodeVar vr ++Vr encodeVars vars
-
-------------------------
-data Circ′ where
-  ret  : Vars Γ Δ → Circ′ Γ Δ
-  oper : Op Γ τ   → Circ′ Γ [ τ ]
-  comp : Vars Γ Θ → Circ′ Θ Θ′ → Circ′ (Θ′ ++ Γ) Δ → Circ′ Γ Δ
-
-Cr′⟦ ret vars ⟧        bvals = lookup (encodeVars vars) bvals
-Cr′⟦ oper {Γ} {τ} op ⟧ bvals = encodes [ τ ] [ Op⟦ op ⟧ (decodes Γ bvals) ]
-Cr′⟦ comp {Γ} {Θ} {Θ′} {Δ} vars c k ⟧ bvals =
-  Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals)
-  where bvalΘ′ = Cr′⟦ c ⟧ (lookup (encodeVars vars) bvals)
