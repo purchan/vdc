@@ -29,8 +29,6 @@ data Circ : List Ty → List Ty → Set
 Op⟦_⟧ : Op Θ τ   → Vals Θ → Ty⟦ τ ⟧
 Cr⟦_⟧ : Circ Γ Δ → Vals Γ → Vals Δ
 
-Circ-++ : (Γ′ : List Ty) → Circ Γ Δ → Circ (Γ ++ Γ′) Δ
-
 ------------------------------------------------
 data Tri where
   true  : Tri
@@ -109,7 +107,3 @@ Op⟦ ≡C   ⟧ [ dc    , _     ] = true
 Cr⟦ ret vars ⟧ vals = lookup vars vals
 Cr⟦ oper op  ⟧ vals = [ Op⟦ op ⟧ vals ]
 Cr⟦ comp vars c k ⟧ vals = Cr⟦ k ⟧ (Cr⟦ c ⟧ (lookup vars vals) ++Vl vals)
-
-Circ-++ {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
-                        where pick₁ = sufVars Γ′ (iniVars Γ)
-                              pick₂ = sufVars (Γ ++ Γ′) (iniVars Δ)
