@@ -3,7 +3,7 @@ open import encprf public
 Cr′⟦_⟧ : Circ Γ Δ → Vals (toBools Γ) → Vals (toBools Δ)
 
 Cr′⟦ ret vars ⟧        bvals = lookup (encodeVars vars) bvals
-Cr′⟦ oper {Γ} {τ} op ⟧ bvals = encodes [ τ ] [ Op⟦ op ⟧ (decodes Γ bvals) ]
+Cr′⟦ oper {Γ} {τ} op ⟧ bvals = Cr⟦ encodeOp op ⟧ bvals
 Cr′⟦ comp {Γ} {Θ} {Θ′} {Δ} vars c k ⟧ bvals =
   Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals)
   where bvalΘ′ = Cr′⟦ c ⟧ (lookup (encodeVars vars) bvals)
@@ -22,16 +22,33 @@ correctness {Γ} {τs} (ret vars) bvals =
     decodes τs (Cr′⟦ ret vars ⟧ bvals)
   ∎
 
-correctness (oper {Γ} {τ} op) bvals =
-  begin
-    Cr⟦ oper op ⟧ (decodes Γ bvals)
-  ≡⟨⟩
-    [ Op⟦ op ⟧ (decodes Γ bvals) ]
-  ≡⟨ sym (decs-encs {[ τ ]} [ Op⟦ op ⟧ (decodes Γ bvals) ]) ⟩
-    decodes [ τ ] (encodes [ τ ] [ Op⟦ op ⟧ (decodes Γ bvals) ])
-  ≡⟨⟩
-    decodes [ τ ] (Cr′⟦ oper op ⟧ bvals)
-  ∎
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , false , false , b₂₂   ] = refl
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , true  , false , b₂₂   ] = refl
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , false , true  , b₂₂   ] = refl
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , true  , true  , b₂₂   ] = refl
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , false , false , false ] = refl
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , true  , false , false ] = refl
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , b₁₂   , false , true  ] = refl
+correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , b₁₂   , true  , b₂₂   ] = refl
+
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , false , false , false ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , false , false , true  ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , true  , false , false ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , true  , false , true  ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , false , true  , b₂₂   ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , true  , true  , b₂₂   ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , false , false ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , false , true  ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , false , false ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , false , true  ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , true  , false ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , true  , true  ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , true  , false ] = refl
+correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , true  , true  ] = refl
+
+correctness (oper {.([ bool , bool ])} {.bool} andB) [ b₁ , b₂ ] = refl
+correctness (oper {.([ bool , bool ])} {.bool} orB)  [ b₁ , b₂ ] = refl
+correctness (oper {.([ bool ])}        {.bool} notB) [ b ]       = refl
 
 correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c k) bvals =
   begin

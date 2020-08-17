@@ -51,9 +51,10 @@ data Vars where
   []  : Vars Γ []
   _∷_ : (σ ∈ Γ) → Vars Γ Δ → Vars Γ (σ ∷ Δ)
 
-pattern [_]     x     = x ∷ []
-pattern [_,_]   x y   = x ∷ y ∷ []
-pattern [_,_,_] x y z = x ∷ y ∷ z ∷ []
+pattern [_]       w       = w ∷ []
+pattern [_,_]     w x     = w ∷ x ∷ []
+pattern [_,_,_]   w x y   = w ∷ x ∷ y ∷ []
+pattern [_,_,_,_] w x y z = w ∷ x ∷ y ∷ z ∷ []
 
 []       ++Vl ys = ys
 (x ∷ xs) ++Vl ys = x ∷ (xs ++Vl ys)
@@ -83,8 +84,11 @@ sufVars s (vr ∷ vars) = ∈-suf vr ∷ sufVars s vars
 ------------------------
 data Op where
   andT : Op [ tri , tri ]   tri
-  andB : Op [ bool , bool ] bool
   ≡C   : Op [ tri , tri ]   bool
+
+  andB : Op [ bool , bool ] bool
+  orB  : Op [ bool , bool ] bool
+  notB : Op [ bool ]        bool
 
 data Circ where
   ret  : Vars Γ Δ → Circ Γ Δ
@@ -96,13 +100,15 @@ Op⟦ andT ⟧ [ false , _     ] = false
 Op⟦ andT ⟧ [ dc    , false ] = false
 Op⟦ andT ⟧ [ dc    , _     ] = dc
 
-Op⟦ andB ⟧ [ x , y ] = x ∧ y
-
 Op⟦ ≡C   ⟧ [ false , false ] = true
 Op⟦ ≡C   ⟧ [ false , _     ] = false
 Op⟦ ≡C   ⟧ [ true  , true  ] = true
 Op⟦ ≡C   ⟧ [ true  , _     ] = false
 Op⟦ ≡C   ⟧ [ dc    , _     ] = true
+
+Op⟦ andB ⟧ [ x , y ] = x ∧ y
+Op⟦ orB  ⟧ [ x , y ] = x ∨ y
+Op⟦ notB ⟧ [ b ]     = not b
 
 Cr⟦ ret vars ⟧ vals = lookup vars vals
 Cr⟦ oper op  ⟧ vals = [ Op⟦ op ⟧ vals ]

@@ -43,9 +43,6 @@ look-dec : (vr : σ ∈ Γ) (bvals : Vals (toBools Γ))
 lookup-dec : (vars : Vars Γ Δ) (bvals : Vals (toBools Γ))
            → lookup vars (decodes Γ bvals) ≡ decodes Δ (lookup (encodeVars vars) bvals)
 
-------------------------
-dec-enc   : (val : Ty⟦ τ ⟧)  → decode τ (encode τ val) ≡ val
-decs-encs : (vals : Vals τs) → decodes τs (encodes τs vals) ≡ vals
 ------------------------------------------------
 split-ri [] = refl
 split-ri (vl ∷ vals) rewrite split-ri vals = refl
@@ -160,20 +157,4 @@ lookup-dec {σ ∷ σs} {τ ∷ τs} (vr ∷ vars) bvals =
     decode τ (lookup (encodeVar vr) bvals) ∷ decodes τs (lookup (encodeVars vars) bvals)
   ≡⟨ decs-lookup (encodeVar vr) (encodeVars vars) bvals ⟩
     decodes (τ ∷ τs) (lookup (encodeVars (vr ∷ vars)) bvals)
-  ∎
-
-------------------------
-dec-enc {bool} b = refl
-dec-enc {tri } true  = refl
-dec-enc {tri } false = refl
-dec-enc {tri } dc    = refl
-
-decs-encs {[]}     []          = refl
-decs-encs {σ ∷ σs} (vl ∷ vals) rewrite split-bv σ σs (encode σ vl) (encodes σs vals) =
-  begin
-    decode σ (encode σ vl) ∷ decodes′ σs (encodes σs vals) (toVals′ σs (encodes σs vals))
-  ≡⟨ cong (_∷ decodes′ σs (encodes σs vals) (toVals′ σs (encodes σs vals))) (dec-enc vl) ⟩
-    vl ∷ decodes′ σs (encodes σs vals) (toVals′ σs (encodes σs vals))
-  ≡⟨ cong (vl ∷_) (decs-encs vals) ⟩
-    vl ∷ vals
   ∎
