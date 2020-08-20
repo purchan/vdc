@@ -71,19 +71,6 @@ encodeVars []          = []
 encodeVars (vr ∷ vars) = encodeVar vr ++Vr encodeVars vars
 
 ------------------------
-preCirc : (Γ′ : List Ty) → Circ Γ Δ → Circ (Γ′ ++ Γ) Δ
-preCirc {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
-                        where pick₁ = preVars Γ′ (iniVars Γ)
-                              pick₂ = sufVars (Γ′ ++ Γ) (iniVars Δ)
-
-sufCirc : (Γ′ : List Ty) → Circ Γ Δ → Circ (Γ ++ Γ′) Δ
-sufCirc {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
-                         where pick₁ = sufVars Γ′ (iniVars Γ)
-                               pick₂ = sufVars (Γ ++ Γ′) (iniVars Δ)
-
-retOp : Vars Γ Γ′ → Op Γ′ τ → Circ Γ [ τ ]
-retOp {Γ} vars op = comp (iniVars Γ) (ret vars) (sufCirc Γ (oper op))
-
 preCirc′ : (Γ′ : List Ty) → Circ Γ Δ → Circ (Γ′ ++ Γ) (Γ′ ++ Δ)
 preCirc′ {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
                          where pick₁ = preVars Γ′ (iniVars Γ)
@@ -95,33 +82,56 @@ preCirc′ {Γ} {Δ} Γ′ circ = comp pick₁ circ (ret pick₂)
 _++Cr_ : Circ Γ Δ → Circ Γ Δ′ → Circ Γ (Δ ++ Δ′)
 _++Cr_ {Γ} {Δ} {Δ′} c₁ c₂ = comp (iniVars Γ) c₁ (preCirc′ Δ c₂)
 
+--------------------------
+data Lit Γ : Set where
+  pos : bool ∈ toBools Γ → Lit Γ
+  neg : bool ∈ toBools Γ → Lit Γ
+
+data Cls Γ : Set where
+  triv : Lit Γ → Cls Γ
+  disj : Lit Γ → Cls Γ → Cls Γ
+
+data Cnf Γ : Set where
+  triv : Cls Γ → Cnf Γ
+  conj : Cls Γ → Cnf Γ → Cnf Γ
+
+litCirc : Lit Γ → Circ (toBools Γ) [ bool ]
+litCirc     (pos i) = ret [ i ]
+litCirc {Γ} (neg i) = comp [ i ] (oper notB) (ret pick)
+                    where pick = sufVars (toBools Γ) (iniVars [ bool ])
+
+clsCirc : Cls Γ → Circ (toBools Γ) [ bool ]
+clsCirc     (triv l)   = litCirc l
+clsCirc {Γ} (disj l c) = comp pick₁ (litCirc l ++Cr clsCirc c) (comp pick₂ (oper orB) (ret pick₃))
+                       where pick₁ = iniVars (toBools Γ)
+                             pick₂ = sufVars (toBools Γ) (iniVars [ bool , bool ])
+                             pick₃ = sufVars (bool ∷ bool ∷ toBools Γ) (iniVars [ bool ])
+
+cnfCirc : Cnf Γ → Circ (toBools Γ) [ bool ]
+cnfCirc     (triv c)   = clsCirc c
+cnfCirc {Γ} (conj c n) = comp pick₁ (clsCirc c ++Cr cnfCirc n) (comp pick₂ (oper andB) (ret pick₃))
+                       where pick₁ = iniVars (toBools Γ)
+                             pick₂ = sufVars (toBools Γ) (iniVars [ bool , bool ])
+                             pick₃ = sufVars (bool ∷ bool ∷ toBools Γ) (iniVars [ bool ])
+
+pattern i11 = here
+pattern i12 = there here
+pattern i21 = there (there here)
+pattern i22 = there (there (there here))
+--------------------------
+
 encodeOp : Op Γ τ → Circ (toBools Γ) (toBools [ τ ])
-encodeOp andT = γ ++Cr c
-              where α+β = retOp (here ∷ there (there here) ∷ []) orB
-                    α+a = retOp (here ∷ there here ∷ []) orB
-                    β+b = retOp (there (there here) ∷ there (there (there here)) ∷ []) orB
+encodeOp andT = cnfCirc {[ tri , tri ]} γn ++Cr cnfCirc {[ tri , tri ]} cn
+              where γn = conj (disj (pos i11) (triv (pos i21)))
+                         (conj (disj (pos i11) (triv (pos i12)))
+                         (triv (disj (pos i21) (triv (pos i22)))))
 
-                    tb   = toBools [ tri , tri ]
-                    reto = retOp (sufVars tb (iniVars [ bool , bool ])) andB
-
-                    γ₁₂ = comp (iniVars tb) (α+β ++Cr α+a) reto
-                    γ   = comp (iniVars tb) (γ₁₂ ++Cr β+b) reto
-
-                    c   = retOp (there here ∷ there (there (there here)) ∷ []) andB
-encodeOp ≡C   = c
-              where tb   = toBools [ tri , tri ]
-                    reto = retOp (sufVars tb (iniVars [ bool , bool ])) andB
-
-                    α+β′   = comp (there (there here) ∷ []) (oper notB) (retOp (here ∷ there here ∷ []) orB)
-
-                    α+b′ = comp (there (there (there here)) ∷ []) (oper notB) (retOp (here ∷ there here ∷ []) orB)
-                    α+a+b′ = comp (iniVars tb) α+b′ (retOp (here ∷ there (there here) ∷ []) orB)
-
-                    α+a′ = comp (there here ∷ []) (oper notB) (retOp (here ∷ there here ∷ []) orB)
-                    α+a′+b = comp (iniVars tb) α+a′ (retOp (here ∷ there (there (there (there here))) ∷ []) orB)
-
-                    c₁₂ = comp (iniVars tb) (α+β′ ++Cr α+a+b′) reto
-                    c   = comp (iniVars tb) (c₁₂  ++Cr α+a′+b) reto
+                    cn = conj (triv (pos i12))
+                         (triv (triv (pos i22)))
+encodeOp ≡C   = cnfCirc {[ tri , tri ]} cn
+              where cn = conj (disj (pos i11) (triv (neg i21)))
+                         (conj (disj (pos i11) (disj (pos i12) (triv (neg i22))))
+                         (triv (disj (pos i11) (disj (neg i12) (triv (pos i22))))))
 
 encodeOp andB = oper andB
 encodeOp orB  = oper orB
