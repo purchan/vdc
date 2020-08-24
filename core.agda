@@ -84,22 +84,30 @@ sufVars s (vr ∷ vars) = ∈-suf vr ∷ sufVars s vars
 ------------------------
 data Op where
   andT : Op [ tri , tri ]   tri
+  -- orT  : Op [ tri , tri ]   tri
   ≡C   : Op [ tri , tri ]   bool
 
   andB : Op [ bool , bool ] bool
   orB  : Op [ bool , bool ] bool
   notB : Op [ bool ]        bool
 
+  -- trueC  : {Γ : List Ty} → Op Γ bool
+
 data Circ where
   ret  : Vars Γ Δ → Circ Γ Δ
   oper : Op Γ τ   → Circ Γ [ τ ]
-  comp : Vars Γ Θ → Circ Θ Θ′ → Circ (Θ′ ++ Γ) Δ → Circ Γ Δ
+  comp : Vars Γ Θ → Circ Θ Θ′ → {Γ′ : List Ty} → (pf : Γ′ ≡ Θ′ ++ Γ) → Circ Γ′ Δ → Circ Γ Δ
 
 Op⟦ andT ⟧ [ true  , y     ] = y
 Op⟦ andT ⟧ [ false , _     ] = false
 Op⟦ andT ⟧ [ dc    , false ] = false
 Op⟦ andT ⟧ [ dc    , _     ] = dc
-
+{-
+Op⟦ orT  ⟧ [ false , y     ] = y
+Op⟦ orT  ⟧ [ true  , _     ] = true
+Op⟦ orT  ⟧ [ dc    , true  ] = true
+Op⟦ orT  ⟧ [ dc    , _     ] = dc
+-}
 Op⟦ ≡C   ⟧ [ false , false ] = true
 Op⟦ ≡C   ⟧ [ false , _     ] = false
 Op⟦ ≡C   ⟧ [ true  , true  ] = true
@@ -110,6 +118,13 @@ Op⟦ andB ⟧ [ x , y ] = x ∧ y
 Op⟦ orB  ⟧ [ x , y ] = x ∨ y
 Op⟦ notB ⟧ [ b ]     = not b
 
+-- Op⟦ trueC ⟧ _        = true
+
+
+++Vl′ : Vals Γ → Vals Γ′ → (pf : Θ′ ≡ Γ ++ Γ′) → Vals Θ′
+++Vl′ []       ys refl = ys
+++Vl′ (x ∷ xs) ys refl = x ∷ (++Vl′ xs ys refl)
+
 Cr⟦ ret vars ⟧ vals = lookup vars vals
 Cr⟦ oper op  ⟧ vals = [ Op⟦ op ⟧ vals ]
-Cr⟦ comp vars c k ⟧ vals = Cr⟦ k ⟧ (Cr⟦ c ⟧ (lookup vars vals) ++Vl vals)
+Cr⟦ comp vars c pf k ⟧ vals = Cr⟦ k ⟧ (++Vl′ (Cr⟦ c ⟧ (lookup vars vals)) vals pf)

@@ -1,5 +1,5 @@
 open import encprf public
-
+{-
 Cr′⟦_⟧ : Circ Γ Δ → Vals (toBools Γ) → Vals (toBools Δ)
 
 Cr′⟦ ret vars ⟧        bvals = lookup (encodeVars vars) bvals
@@ -7,10 +7,24 @@ Cr′⟦ oper {Γ} {τ} op ⟧ bvals = Cr⟦ encodeOp op ⟧ bvals
 Cr′⟦ comp {Γ} {Θ} {Θ′} {Δ} vars c k ⟧ bvals =
   Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals)
   where bvalΘ′ = Cr′⟦ c ⟧ (lookup (encodeVars vars) bvals)
+-}
+postulate
+  cc : (pf : Γ′ ≡ Θ′ ++ Γ) → toBools Γ′ ≡ toBools Θ′ ++ toBools Γ
+
+  decs-++Vl′ : (bvalΘ′ : Vals (toBools Θ′)) (bvals : Vals (toBools Γ))
+           → (pf : Γ′ ≡ Θ′ ++ Γ) (pf′ : toBools Γ′ ≡ toBools Θ′ ++ toBools Γ)
+           → ++Vl′ (decodes Θ′ bvalΘ′) (decodes Γ bvals) pf
+           ≡ decodes Γ′ (++Vl′ bvalΘ′ bvals pf′)
+
+
+compile : Circ Γ Δ → Circ (toBools Γ) (toBools Δ)
+compile (ret vars) = ret (encodeVars vars)
+compile (oper op) = encodeOp op
+compile (comp {Γ} {Θ} {Θ′} {Δ} vars c pf k) = comp (encodeVars vars) (compile c) (cc {Θ′ = Θ′} {Γ = Γ} pf) (compile k)
 
 
 correctness : (c : Circ Γ Δ) (bvals : Vals (toBools Γ))
-            → Cr⟦ c ⟧ (decodes Γ bvals) ≡ decodes Δ (Cr′⟦ c ⟧ bvals)
+            → Cr⟦ c ⟧ (decodes Γ bvals) ≡ decodes Δ (Cr⟦ compile c ⟧ bvals)
 correctness {Γ} {τs} (ret vars) bvals =
   begin
     Cr⟦ ret vars ⟧ (decodes Γ bvals)
@@ -19,7 +33,7 @@ correctness {Γ} {τs} (ret vars) bvals =
   ≡⟨ lookup-dec vars bvals ⟩
     decodes τs (lookup (encodeVars vars) bvals)
   ≡⟨⟩
-    decodes τs (Cr′⟦ ret vars ⟧ bvals)
+    decodes τs (Cr⟦ compile (ret vars) ⟧ bvals)
   ∎
 
 correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , false , false , b₂₂   ] = refl
@@ -50,21 +64,21 @@ correctness (oper {.([ bool , bool ])} {.bool} andB) [ b₁ , b₂ ] = refl
 correctness (oper {.([ bool , bool ])} {.bool} orB)  [ b₁ , b₂ ] = refl
 correctness (oper {.([ bool ])}        {.bool} notB) [ b ]       = refl
 
-correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c k) bvals =
+correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c {Γ′} pf k) bvals =
   begin
-    Cr⟦ comp vars c k ⟧ (decodes Γ bvals)
+    Cr⟦ comp vars c pf k ⟧ (decodes Γ bvals)
   ≡⟨⟩
-    Cr⟦ k ⟧ (Cr⟦ c ⟧ (lookup vars (decodes Γ bvals)) ++Vl decodes Γ bvals)
-  ≡⟨ cong (λ{pf → Cr⟦ k ⟧ (Cr⟦ c ⟧ pf ++Vl decodes Γ bvals)}) (lookup-dec vars bvals) ⟩
-    Cr⟦ k ⟧ (Cr⟦ c ⟧ (decodes Θ leb) ++Vl decodes Γ bvals)
-  ≡⟨ cong (λ{pf → Cr⟦ k ⟧ (pf ++Vl decodes Γ bvals)}) (correctness c leb) ⟩
-    Cr⟦ k ⟧ (decodes Θ′ bvalΘ′ ++Vl decodes Γ bvals)
-  ≡⟨ cong Cr⟦ k ⟧ (decs-++Vl {Θ′} {Γ} bvalΘ′ bvals) ⟩
-    Cr⟦ k ⟧ (decodes (Θ′ ++ Γ) (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals))
-  ≡⟨ correctness k (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals) ⟩
-    decodes Δ (Cr′⟦ k ⟧ (_++bVl_ {Θ′} {Γ} bvalΘ′ bvals))
+    Cr⟦ k ⟧ (++Vl′ (Cr⟦ c ⟧ (lookup vars (decodes Γ bvals))) (decodes Γ bvals) pf)
+  ≡⟨ cong (λ{pf′ → Cr⟦ k ⟧ (++Vl′ (Cr⟦ c ⟧ pf′) (decodes Γ bvals) pf)}) (lookup-dec vars bvals) ⟩
+    Cr⟦ k ⟧ (++Vl′ (Cr⟦ c ⟧ (decodes Θ leb)) (decodes Γ bvals) pf)
+  ≡⟨ cong (λ{pf′ → Cr⟦ k ⟧ (++Vl′ pf′ (decodes Γ bvals) pf)}) (correctness c leb) ⟩
+    Cr⟦ k ⟧ (++Vl′ (decodes Θ′ bvalΘ′) (decodes Γ bvals) pf)
+  ≡⟨ cong Cr⟦ k ⟧ (decs-++Vl′ {Θ′} {Γ} bvalΘ′ bvals pf (cc {Γ′} {Θ′} {Γ} pf)) ⟩
+    Cr⟦ k ⟧ (decodes Γ′  (++Vl′ bvalΘ′ bvals (cc {Γ′} {Θ′} {Γ} pf)))
+  ≡⟨ correctness k (++Vl′ bvalΘ′ bvals (cc {Γ′} {Θ′} {Γ} pf)) ⟩
+    decodes Δ (Cr⟦ compile k ⟧ (++Vl′ bvalΘ′ bvals (cc {Γ′} {Θ′} {Γ} pf)))
   ≡⟨⟩
-    decodes Δ (Cr′⟦ comp vars c k ⟧ bvals)
+    decodes Δ (Cr⟦ compile (comp vars c pf k) ⟧ bvals)
   ∎
   where leb = lookup (encodeVars vars) bvals
-        bvalΘ′ = Cr′⟦ c ⟧ leb
+        bvalΘ′ = Cr⟦ compile c ⟧ leb
