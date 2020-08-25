@@ -7,16 +7,13 @@ decode : (τ : Ty) → Vals (toBool τ) → Ty⟦ τ ⟧
 
 ------------------------
 toBools : List Ty → List Ty
+toBools-∷ : (σ : Ty) (σs : List Ty) (pf : Θ ≡ σ ∷ σs)
+           → toBools Θ ≡ toBool σ ++ toBools σs
 toBools-++ : (Γ Γ′ : List Ty) (pf : Θ ≡ Γ ++ Γ′)
            → toBools Θ ≡ toBools Γ ++ toBools Γ′
 
-data Vals′ : (τs : List Ty) → Vals (toBools τs) → Set
-
-splitVals  : (valστ : Vals (σs ++ τs))
-           → Σ[ valσ ∈ Vals σs ] Σ[ valτ ∈ Vals τs ] (valστ ≡ ++Vlp valσ valτ refl)
-toVals′  : (τs : List Ty) (bvals : Vals (toBools τs)) → Vals′ τs bvals
-decodes′ : (τs : List Ty) (bvals : Vals (toBools τs)) → Vals′ τs bvals → Vals τs
-
+splitVals : (valστ : Vals Ω) (pf : Ω ≡ σs ++ τs)
+           → Σ[ valσ ∈ Vals σs ] Σ[ valτ ∈ Vals τs ] (valστ ≡ ++Vlp valσ valτ pf)
 ------------------------
 decodes : (τs : List Ty) → Vals (toBools τs) → Vals τs
 
@@ -48,6 +45,7 @@ decode tri  [ true  , _     ] = dc
 
 ------------------------
 toBools = concatMap toBool
+toBools-∷ σ σs refl = refl
 
 toBools-++ []       Γ′ refl = refl
 toBools-++ (σ ∷ σs) Γ′ refl =
@@ -63,28 +61,13 @@ toBools-++ (σ ∷ σs) Γ′ refl =
     toBools (σ ∷ σs) ++ toBools Γ′
   ∎
 
-
-data Vals′ where
-  nil  : Vals′ [] []
-  cons : {τ : Ty} {τs : List Ty}
-       → (bval : Vals (toBool τ)) (bvals : Vals (toBools τs))
-       → Vals′ τs bvals → Vals′ (τ ∷ τs) (++Vlp bval bvals refl)
-
-
-splitVals {[]}     valτ         = ⟨ _ , ⟨ valτ , refl ⟩ ⟩
-splitVals {σ ∷ σs} (val ∷ vals) with splitVals {σs} vals
-...                                | ⟨ val′ , ⟨ valτ , pf′ ⟩ ⟩ = ⟨ val ∷ val′ , ⟨ valτ , cong (val ∷_) pf′ ⟩ ⟩
-
-toVals′ []       []    = nil
-toVals′ (τ ∷ τs) bvals                   with splitVals {toBool τ} {toBools τs} bvals
-toVals′ (τ ∷ τs) .(++Vlp bvalτ bvalτs refl) | ⟨ bvalτ , ⟨ bvalτs , refl ⟩ ⟩
-                       = cons {τ} {τs} bvalτ bvalτs (toVals′ τs bvalτs)
-
-decodes′ []       ._                       nil                     = []
-decodes′ (τ ∷ τs) .(++Vlp bval bvals refl) (cons bval bvals vals′) = decode τ bval ∷ decodes′ τs bvals vals′
-
+splitVals {σs = []}     valτ         refl = ⟨ _ , ⟨ valτ , refl ⟩ ⟩
+splitVals {σs = σ ∷ σs} (val ∷ vals) refl with splitVals {σs = σs} vals refl
+...                                           | ⟨ val″ , ⟨ valτ , pf″ ⟩ ⟩ = ⟨ val ∷ val″ , ⟨ valτ , cong (val ∷_) pf″ ⟩ ⟩
 ------------------------
-decodes τs bvals = decodes′ τs bvals (toVals′ τs bvals)
+decodes []       []    = []
+decodes (τ ∷ τs) bvals                                       with splitVals {σs = toBool τ} {τs = toBools τs} bvals (toBools-∷ τ τs refl)
+decodes (τ ∷ τs) .(++Vlp bvalτ bvalτs (toBools-∷ τ τs refl))    | ⟨ bvalτ , ⟨ bvalτs , refl ⟩ ⟩ = decode τ bvalτ ∷ decodes τs bvalτs
 
 encodeVar {σ} {σ ∷ σs} here      = sufVars (toBools σs) (iniVars (toBool σ))
 encodeVar {σ} {x ∷ σs} (there l) = preVars (toBool x) (encodeVar {σ} {σs} l)

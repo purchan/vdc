@@ -1,32 +1,36 @@
 open import enclib public
 
-toBools-∷ : (σ : Ty) (σs : List Ty) (pf : Θ ≡ σ ∷ σs)
-           → toBools Θ ≡ toBool σ ++ toBools σs
-toBools-∷ σ σs refl = refl
+split-ri : (vals : Vals Γ)
+         → (pf : Ω ≡ Γ ++ [])
+         → splitVals (++Vlp vals [] pf) pf ≡ ⟨ vals , ⟨ [] , refl ⟩ ⟩
 
-splitVals″ : (valστ : Vals Ω) (pf : Ω ≡ σs ++ τs)
-           → Σ[ valσ ∈ Vals σs ] Σ[ valτ ∈ Vals τs ] (valστ ≡ ++Vlp valσ valτ pf)
-splitVals″ {σs = []}     valτ         refl = ⟨ _ , ⟨ valτ , refl ⟩ ⟩
-splitVals″ {σs = σ ∷ σs} (val ∷ vals) refl with splitVals″ {σs = σs} vals refl
-...                                           | ⟨ val″ , ⟨ valτ , pf″ ⟩ ⟩ = ⟨ val ∷ val″ , ⟨ valτ , cong (val ∷_) pf″ ⟩ ⟩
-
-
-decodes″ : (τs : List Ty) → Vals (toBools τs) → Vals τs
-decodes″ []       []    = []
-decodes″ (τ ∷ τs) bvals                                       with splitVals″ {σs = toBool τ} {τs = toBools τs} bvals (toBools-∷ τ τs refl)
-decodes″ (τ ∷ τs) .(++Vlp bvalτ bvalτs (toBools-∷ τ τs refl))    | ⟨ bvalτ , ⟨ bvalτs , refl ⟩ ⟩ = decode τ bvalτ ∷ decodes″ τs bvalτs
-
-------------------------
-
-split-ri : (vals : Vals Γ) → splitVals (++Vlp vals [] refl) ≡ ⟨ vals , ⟨ [] , refl ⟩ ⟩
 split-rc : (vals : Vals Γ) (vals₁ : Vals Θ) (vals₂ : Vals Θ′)
-         → (pf : Ω ≡ Θ ++ Θ′)
-         → splitVals (++Vlp vals (++Vlp vals₁ vals₂ pf) refl) ≡ ⟨ vals , ⟨ ++Vlp vals₁ vals₂ pf , refl ⟩ ⟩
-split-bv : (σ : Ty) (σs : List Ty) (bval : Vals (toBool σ)) (bvals : Vals (toBools σs))
-         → splitVals {toBool σ} {toBools σs} (++Vlp bval bvals refl)
+         → (pf : Ω ≡ Θ ++ Θ′) (pf′ : Ω′ ≡ Γ ++ Ω)
+         → splitVals (++Vlp vals (++Vlp vals₁ vals₂ pf) pf′) pf′ ≡ ⟨ vals , ⟨ ++Vlp vals₁ vals₂ pf , refl ⟩ ⟩
+
+split-bv : {σ : Ty} {σs : List Ty} (bval : Vals (toBool σ)) (bvals : Vals (toBools σs))
+         → (pf : toBools Ω ≡ toBool σ ++ toBools σs)
+         → splitVals {σs = toBool σ} {τs = toBools σs} (++Vlp bval bvals pf) pf
          ≡ ⟨ bval , ⟨ bvals , refl ⟩ ⟩
 
+------------------------
+dec-++Vlp : (bvalσ : Vals (toBool σ)) (bvalσs : Vals (toBools σs))
+          → decode σ bvalσ ∷ decodes σs bvalσs ≡ decodes (σ ∷ σs) (++Vlp bvalσ bvalσs refl)
 
+lookup-++Vr : (vars₁ : Vars Γ Δ) (vars₂ : Vars Γ Δ′) (vals : Vals Γ)
+            → ++Vlp (lookup vars₁ vals) (lookup vars₂ vals) refl ≡ lookup (vars₁ ++Vr vars₂) vals
+
+------------------------
+decs-lookup : (vars₁ : Vars Γ (toBool σ)) (vars₂ : Vars Γ (toBools σs)) (vals : Vals Γ)
+             → decode σ (lookup vars₁ vals) ∷ decodes σs (lookup vars₂ vals)
+             ≡ decodes (σ ∷ σs) (lookup (vars₁ ++Vr vars₂) vals)
+
+decs-++Vlp : (bvalΓ : Vals (toBools Γ)) (bvalΓ′ : Vals (toBools Γ′))
+           → (pf : Θ ≡ Γ ++ Γ′) (pf′ : toBools Θ ≡ toBools Γ ++ toBools Γ′)
+           → ++Vlp (decodes Γ bvalΓ) (decodes Γ′ bvalΓ′) pf
+           ≡ decodes Θ (++Vlp bvalΓ bvalΓ′ pf′)
+
+------------------------
 lookup-mapThere : (vars : Vars Γ Δ) (vl : Ty⟦ τ ⟧) (vals : Vals Γ)
                 → lookup (mapThere vars) (vl ∷ vals) ≡ lookup vars vals
 
@@ -41,48 +45,42 @@ look-suf : (vr : σ ∈ Γ) (valΓ : Vals Γ) (valΓ′ : Vals Γ′)
 lookup-suf : (vars : Vars Γ Δ) (valΓ : Vals Γ) (valΓ′ : Vals Γ′)
            → lookup (sufVars Γ′ vars) (++Vlp valΓ valΓ′ refl) ≡ lookup vars valΓ
 
+------------------------
 look-dec : (vr : σ ∈ Γ) (bvals : Vals (toBools Γ))
          → look vr (decodes Γ bvals) ≡ decode σ (lookup (encodeVar vr) bvals)
-
-postulate
-  ++Vlp-assoc : (valΓ : Vals Γ) (valΓ′ : Vals Γ′) (valτs : Vals τs)
-             → (pf₁ : Δ ≡ Γ′ ++ τs) (pf₂ : Δ′ ≡ Γ ++ Δ)
-               (pf₃ : Θ ≡ Γ ++ Γ′) (pf₄ : Δ′ ≡ Θ ++ τs)
-             → ++Vlp valΓ (++Vlp valΓ′ valτs pf₁) pf₂ ≡ ++Vlp (++Vlp valΓ valΓ′ pf₃) valτs pf₄
-
-
-dec-++Vlp : (bvalσ : Vals (toBool σ)) (bvalσs : Vals (toBools σs))
-         → decode σ bvalσ ∷ decodes σs bvalσs ≡ decodes (σ ∷ σs) (++Vlp bvalσ bvalσs refl)
-decs-++Vlp : (bvalΓ : Vals (toBools Γ)) (bvalΓ′ : Vals (toBools Γ′))
-           → (pf : Θ ≡ Γ ++ Γ′) (pf′ : toBools Θ ≡ toBools Γ ++ toBools Γ′)
-           → ++Vlp (decodes Γ bvalΓ) (decodes Γ′ bvalΓ′) pf
-           ≡ decodes Θ (++Vlp bvalΓ bvalΓ′ pf′)
-
-lookup-++Vr : (vars₁ : Vars Γ Δ) (vars₂ : Vars Γ Δ′) (vals : Vals Γ)
-            → ++Vlp (lookup vars₁ vals) (lookup vars₂ vals) refl ≡ lookup (vars₁ ++Vr vars₂) vals
-lookup-++Vr []           vars₂ vals = refl
-lookup-++Vr (vr ∷ vars₁) vars₂ vals rewrite lookup-++Vr vars₁ vars₂ vals = refl
-
-decs-lookup : (vars₁ : Vars Γ (toBool σ)) (vars₂ : Vars Γ (toBools σs)) (vals : Vals Γ)
-             → decode σ (lookup vars₁ vals) ∷ decodes σs (lookup vars₂ vals)
-             ≡ decodes (σ ∷ σs) (lookup (vars₁ ++Vr vars₂) vals)
 
 lookup-dec : (vars : Vars Γ Δ) (bvals : Vals (toBools Γ))
            → lookup vars (decodes Γ bvals) ≡ decodes Δ (lookup (encodeVars vars) bvals)
 
 ------------------------------------------------
+split-ri []       refl = refl
+split-ri (v ∷ vs) refl rewrite split-ri vs refl = refl
 
-split-ri [] = refl
-split-ri (vl ∷ vals) rewrite split-ri vals = refl
+split-rc []       vals₁ vals₂ refl refl = refl
+split-rc (v ∷ vs) vals₁ vals₂ refl refl rewrite split-rc vs vals₁ vals₂ refl refl = refl
 
-split-rc []          vals₁ vals₂ refl = refl
-split-rc (vl ∷ vals) vals₁ vals₂ refl rewrite split-rc vals vals₁ vals₂ refl = refl
+split-bv {σs = []}     bval []                         pf = split-ri bval pf
+split-bv {σs = τ ∷ τs} bval bvals                      pf with splitVals {σs = toBool τ} {τs = toBools τs} bvals refl
+split-bv {σs = τ ∷ τs} bval .(++Vlp bvalτ bvalτs refl) pf    | ⟨ bvalτ , ⟨ bvalτs , refl ⟩ ⟩ = split-rc bval bvalτ bvalτs refl pf
+------------------------
 
-split-bv σ []        bval []    = split-ri bval
-split-bv σ (σ′ ∷ σs) bval bvals                       with splitVals {toBool σ′} {toBools σs} bvals
-split-bv σ (σ′ ∷ σs) bval .(++Vlp bvalσ′ bvalσs refl) | ⟨ bvalσ′ , ⟨ bvalσs , refl ⟩ ⟩ = split-rc bval bvalσ′ bvalσs refl
+dec-++Vlp {σ} {σs} bvalσ bvalσs rewrite split-bv {σ ∷ σs} {σ} {σs} bvalσ bvalσs refl = refl
 
+lookup-++Vr []           vars₂ vals = refl
+lookup-++Vr (vr ∷ vars₁) vars₂ vals rewrite lookup-++Vr vars₁ vars₂ vals = refl
 
+------------------------
+decs-lookup {Γ} {σ} {σs} vars₁ vars₂ vals =
+  begin
+    decode σ (lookup vars₁ vals) ∷ decodes σs (lookup vars₂ vals)
+  ≡⟨ dec-++Vlp (lookup vars₁ vals) (lookup vars₂ vals) ⟩
+    decodes (σ ∷ σs) (++Vlp (lookup vars₁ vals) (lookup vars₂ vals) refl)
+  ≡⟨ cong (decodes (σ ∷ σs)) (lookup-++Vr vars₁ vars₂ vals) ⟩
+    decodes (σ ∷ σs) (lookup (vars₁ ++Vr vars₂) vals)
+  ∎
+
+decs-++Vlp = {!!}
+------------------------
 lookup-mapThere []          vl vals = refl
 lookup-mapThere (vr ∷ vars) vl vals =
   begin
@@ -135,10 +133,11 @@ lookup-suf {σ ∷ σs} {Γ′ = Γ′} (vr ∷ vars) (vl ∷ vals) valΓ′ =
     lookup (vr ∷ vars) (vl ∷ vals)
   ∎
 
-look-dec {σ} {σ ∷ σs} here bvals               with splitVals {toBool σ} {toBools σs} bvals
+------------------------
+look-dec {σ} {σ ∷ σs} here bvals                     with splitVals {σs = toBool σ} {τs = toBools σs} bvals (toBools-∷ σ σs refl)
 look-dec {σ} {σ ∷ σs} here .(++Vlp bvalσ bvalσs refl)   | ⟨ bvalσ , ⟨ bvalσs , refl ⟩ ⟩
   rewrite lookup-suf (iniVars (toBool σ)) bvalσ bvalσs | lookup-ini {toBool σ} bvalσ = refl
-look-dec {σ} {x ∷ σs} (there l) bvals                with encodeVar {σ} {σs} l | inspect (encodeVar {σ} {σs}) l | splitVals {toBool x} {toBools σs} bvals
+look-dec {σ} {x ∷ σs} (there l) bvals                   with encodeVar {σ} {σs} l    | inspect (encodeVar {σ} {σs}) l | splitVals {σs = toBool x} {τs = toBools σs} bvals (toBools-∷ x σs refl)
 look-dec {σ} {x ∷ σs} (there l) .(++Vlp bvalx bvalσs refl) | evar                    | In[ pf ]                       | ⟨ bvalx , ⟨ bvalσs , refl ⟩ ⟩ =
   begin
     look l (decodes σs bvalσs)
@@ -146,34 +145,6 @@ look-dec {σ} {x ∷ σs} (there l) .(++Vlp bvalx bvalσs refl) | evar          
     decode σ (lookup evar bvalσs)
   ≡⟨ cong (decode σ) (sym (lookup-pre evar bvalσs bvalx)) ⟩
     decode σ (lookup (preVars (toBool x) evar) (++Vlp bvalx bvalσs refl))
-  ∎
-
-{-
-++Vlp-assoc {[]}     {Γ′} {τs} []             valΓ′ valτs refl refl refl refl = refl
-++Vlp-assoc {σ ∷ σs} {Γ′} {τs} (valσ ∷ valσs) valΓ′ valτs refl refl refl pf₄  = {!pf₄!}
--- sym (++-assoc (σ ∷ σs) Γ′ τs)
--}
-
-dec-++Vlp {σ} {σs} bvalσ bvalσs rewrite split-bv σ σs bvalσ bvalσs = refl
-
-decs-++Vlp {[]}     {Γ′} []    bvalΓ′ refl refl = refl
-decs-++Vlp {σ ∷ σs} {Γ′} bvalΓ                      bvalΓ′ refl pf′ with splitVals {toBool σ} {toBools σs} bvalΓ
-decs-++Vlp {σ ∷ σs} {Γ′} .(++Vlp bvalσ bvalσs refl) bvalΓ′ refl pf′    | ⟨ bvalσ , ⟨ bvalσs , refl ⟩ ⟩ = {!!}
-{-
-  rewrite decs-++Vlp {σs} {Γ′} bvalσs bvalΓ′ refl (toBools-++ σs Γ′ refl)
-        | dec-++Vlp {σ} {σs ++ Γ′} bvalσ (++Vlp bvalσs bvalΓ′ (toBools-++ σs Γ′ refl))
-        | split-rc bvalσ bvalσs bvalΓ′ (toBools-++ σs Γ′ refl) = {!!}
---        | ++Vlp-assoc {toBool σ} {toBools σs} {toBools Γ′} bvalσ bvalσs bvalΓ′
---            (toBools-++ σs Γ′ refl) refl refl pf′ = refl
--}
-
-decs-lookup {Γ} {σ} {σs} vars₁ vars₂ vals =
-  begin
-    decode σ (lookup vars₁ vals) ∷ decodes σs (lookup vars₂ vals)
-  ≡⟨ dec-++Vlp (lookup vars₁ vals) (lookup vars₂ vals) ⟩
-    decodes (σ ∷ σs) (++Vlp (lookup vars₁ vals) (lookup vars₂ vals) refl)
-  ≡⟨ cong (decodes (σ ∷ σs)) (lookup-++Vr vars₁ vars₂ vals) ⟩
-    decodes (σ ∷ σs) (lookup (vars₁ ++Vr vars₂) vals)
   ∎
 
 lookup-dec {[]}              []          []    = refl
