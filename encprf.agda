@@ -14,6 +14,11 @@ split-bv : {σ : Ty} {σs : List Ty} (bval : Vals (toBool σ)) (bvals : Vals (to
          ≡ ⟨ bval , ⟨ bvals , refl ⟩ ⟩
 
 ------------------------
+++Vlp-assoc : (valσs : Vals σs) (valτs : Vals τs) (valsΓ : Vals Γ)
+            → (pf₁ : Δ  ≡ τs ++ Γ ) (pf₂ : Ω ≡ σs ++ Δ)
+              (pf₃ : Δ′ ≡ σs ++ τs) (pf₄ : Ω ≡ Δ′ ++ Γ)
+            → ++Vlp valσs (++Vlp valτs valsΓ pf₁) pf₂ ≡ ++Vlp (++Vlp valσs valτs pf₃) valsΓ pf₄
+
 dec-++Vlp : (bvalσ : Vals (toBool σ)) (bvalσs : Vals (toBools σs))
           → decode σ bvalσ ∷ decodes σs bvalσs ≡ decodes (σ ∷ σs) (++Vlp bvalσ bvalσs refl)
 
@@ -79,7 +84,13 @@ decs-lookup {Γ} {σ} {σs} vars₁ vars₂ vals =
     decodes (σ ∷ σs) (lookup (vars₁ ++Vr vars₂) vals)
   ∎
 
-decs-++Vlp = {!!}
+decs-++Vlp {[]}     {Γ′} []    bvalΓ′ refl refl = refl
+decs-++Vlp {σ ∷ σs} {Γ′} bvalΓ                      bvalΓ′ refl pf′    with splitVals {σs = toBool σ} {τs = toBools σs} bvalΓ refl
+decs-++Vlp {σ ∷ σs} {Γ′} .(++Vlp bvalσ bvalσs refl) bvalΓ′ refl pf′       | ⟨ bvalσ , ⟨ bvalσs , refl ⟩ ⟩
+  rewrite decs-++Vlp {σs} {Γ′} bvalσs bvalΓ′ refl (toBools-++ σs Γ′ refl)
+        | dec-++Vlp {σ} {σs ++ Γ′} bvalσ (++Vlp bvalσs bvalΓ′ (toBools-++ σs Γ′ refl))
+        | ++Vlp-assoc {toBool σ} {toBools σs} {toBools Γ′} bvalσ bvalσs bvalΓ′
+            (toBools-++ σs Γ′ refl) refl refl pf′ = refl
 ------------------------
 lookup-mapThere []          vl vals = refl
 lookup-mapThere (vr ∷ vars) vl vals =
