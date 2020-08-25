@@ -71,10 +71,9 @@ data Vals′ where
        → Vals′ τs bvals → Vals′ (τ ∷ τs) (++Vlp bval bvals refl)
 
 
-splitVals {[]}     valτ = ⟨ _ , ⟨ valτ , refl ⟩ ⟩
+splitVals {[]}     valτ         = ⟨ _ , ⟨ valτ , refl ⟩ ⟩
 splitVals {σ ∷ σs} (val ∷ vals) with splitVals {σs} vals
-...                                | ⟨ val′ , ⟨ valτ , pf ⟩ ⟩ = ⟨ val ∷ val′ , ⟨ valτ , cong (val ∷_) pf ⟩ ⟩
-
+...                                | ⟨ val′ , ⟨ valτ , pf′ ⟩ ⟩ = ⟨ val ∷ val′ , ⟨ valτ , cong (val ∷_) pf′ ⟩ ⟩
 
 toVals′ []       []    = nil
 toVals′ (τ ∷ τs) bvals                   with splitVals {toBool τ} {toBools τs} bvals
