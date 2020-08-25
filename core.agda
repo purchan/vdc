@@ -6,10 +6,12 @@ Ty⟦_⟧ : Ty → Set
 
 variable
   σ  τ  : Ty
-  σs τs Γ Γ′ Δ Δ′ Θ Θ′ : List Ty
+  σs τs Γ Γ′ Δ Δ′ Θ Θ′ Ω Ω′ : List Ty
 ------------------------
 data Vals : List Ty → Set
 _++Vl_ : Vals Γ   → Vals Γ′ → Vals (Γ ++ Γ′)
+
+++Vlp : Vals Γ → Vals Γ′ → (pf : Ω ≡ Γ ++ Γ′) → Vals Ω
 
 data Vars : List Ty → List Ty → Set
 _++Vr_ : Vars Γ Δ → Vars Γ Δ′ → Vars Γ (Δ ++ Δ′)
@@ -59,6 +61,9 @@ pattern [_,_,_,_] w x y z = w ∷ x ∷ y ∷ z ∷ []
 []       ++Vl ys = ys
 (x ∷ xs) ++Vl ys = x ∷ (xs ++Vl ys)
 
+++Vlp []       ys refl = ys
+++Vlp (x ∷ xs) ys refl = x ∷ (++Vlp xs ys refl)
+
 []       ++Vr ys = ys
 (x ∷ xs) ++Vr ys = x ∷ (xs ++Vr ys)
 
@@ -91,8 +96,6 @@ data Op where
   orB  : Op [ bool , bool ] bool
   notB : Op [ bool ]        bool
 
-  -- trueC  : {Γ : List Ty} → Op Γ bool
-
 data Circ where
   ret  : Vars Γ Δ → Circ Γ Δ
   oper : Op Γ τ   → Circ Γ [ τ ]
@@ -118,13 +121,6 @@ Op⟦ andB ⟧ [ x , y ] = x ∧ y
 Op⟦ orB  ⟧ [ x , y ] = x ∨ y
 Op⟦ notB ⟧ [ b ]     = not b
 
--- Op⟦ trueC ⟧ _        = true
-
-
-++Vl′ : Vals Γ → Vals Γ′ → (pf : Θ′ ≡ Γ ++ Γ′) → Vals Θ′
-++Vl′ []       ys refl = ys
-++Vl′ (x ∷ xs) ys refl = x ∷ (++Vl′ xs ys refl)
-
 Cr⟦ ret vars ⟧ vals = lookup vars vals
 Cr⟦ oper op  ⟧ vals = [ Op⟦ op ⟧ vals ]
-Cr⟦ comp vars c pf k ⟧ vals = Cr⟦ k ⟧ (++Vl′ (Cr⟦ c ⟧ (lookup vars vals)) vals pf)
+Cr⟦ comp vars c pf k ⟧ vals = Cr⟦ k ⟧ (++Vlp (Cr⟦ c ⟧ (lookup vars vals)) vals pf)
