@@ -20,33 +20,42 @@ correctness {Γ} {τs} (ret vars) bvals =
     decodes τs (Cr⟦ compile (ret vars) ⟧ bvals)
   ∎
 
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , false , false , b₂₂   ] = refl
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , true  , false , b₂₂   ] = refl
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , false , true  , b₂₂   ] = refl
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ false , true  , true  , b₂₂   ] = refl
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , false , false , false ] = refl
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , true  , false , false ] = refl
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , b₁₂   , false , true  ] = refl
-correctness (oper {.([ tri , tri ])} {.tri} andT) [ true  , b₁₂   , true  , b₂₂   ] = refl
+correctness (oper andT) [ false , false , false , i₂₂   ] = refl
+correctness (oper andT) [ false , true  , false , i₂₂   ] = refl
+correctness (oper andT) [ false , false , true  , i₂₂   ] = refl
+correctness (oper andT) [ false , true  , true  , i₂₂   ] = refl
+correctness (oper andT) [ true  , false , false , false ] = refl
+correctness (oper andT) [ true  , true  , false , false ] = refl
+correctness (oper andT) [ true  , i₁₂   , false , true  ] = refl
+correctness (oper andT) [ true  , i₁₂   , true  , i₂₂   ] = refl
 
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , false , false , false ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , false , false , true  ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , true  , false , false ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , true  , false , true  ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , false , true  , b₂₂   ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ false , true  , true  , b₂₂   ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , false , false ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , false , true  ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , false , false ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , false , true  ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , true  , false ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , false , true  , true  ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , true  , false ] = refl
-correctness (oper {.([ tri , tri ])} {.bool} ≡C) [ true  , true  , true  , true  ] = refl
+correctness (oper orT) [ false , false , false , i₂₂   ] = refl
+correctness (oper orT) [ false , true  , false , i₂₂   ] = refl
+correctness (oper orT) [ false , false , true  , i₂₂   ] = refl
+correctness (oper orT) [ false , true  , true  , i₂₂   ] = refl
+correctness (oper orT) [ true  , i₁₂   , false , false ] = refl
+correctness (oper orT) [ true  , false , false , true  ] = refl
+correctness (oper orT) [ true  , true  , false , true  ] = refl
+correctness (oper orT) [ true  , i₁₂   , true  , i₂₂   ] = refl
 
-correctness (oper {.([ bool , bool ])} {.bool} andB) [ b₁ , b₂ ] = refl
-correctness (oper {.([ bool , bool ])} {.bool} orB)  [ b₁ , b₂ ] = refl
-correctness (oper {.([ bool ])}        {.bool} notB) [ b ]       = refl
+correctness (oper ≡C) [ false , false , false , false ] = refl
+correctness (oper ≡C) [ false , false , false , true  ] = refl
+correctness (oper ≡C) [ false , true  , false , false ] = refl
+correctness (oper ≡C) [ false , true  , false , true  ] = refl
+correctness (oper ≡C) [ false , false , true  , i₂₂   ] = refl
+correctness (oper ≡C) [ false , true  , true  , i₂₂   ] = refl
+correctness (oper ≡C) [ true  , false , false , false ] = refl
+correctness (oper ≡C) [ true  , false , false , true  ] = refl
+correctness (oper ≡C) [ true  , true  , false , false ] = refl
+correctness (oper ≡C) [ true  , true  , false , true  ] = refl
+correctness (oper ≡C) [ true  , false , true  , false ] = refl
+correctness (oper ≡C) [ true  , false , true  , true  ] = refl
+correctness (oper ≡C) [ true  , true  , true  , false ] = refl
+correctness (oper ≡C) [ true  , true  , true  , true  ] = refl
+
+correctness (oper andB) [ i₁ , i₂ ] = refl
+correctness (oper orB)  [ i₁ , i₂ ] = refl
+correctness (oper notB) [ i ]       = refl
 
 correctness (comp {Γ} {Θ} {Θ′} {Δ} vars c {Γ′} pf k) bvals =
   begin

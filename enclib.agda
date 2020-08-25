@@ -7,10 +7,10 @@ decode : (τ : Ty) → Vals (toBool τ) → Ty⟦ τ ⟧
 
 ------------------------
 toBools : List Ty → List Ty
-toBools-∷ : (σ : Ty) (σs : List Ty) (pf : Θ ≡ σ ∷ σs)
-           → toBools Θ ≡ toBool σ ++ toBools σs
-toBools-++ : (Γ Γ′ : List Ty) (pf : Θ ≡ Γ ++ Γ′)
-           → toBools Θ ≡ toBools Γ ++ toBools Γ′
+toBools-∷ : (σ : Ty) (σs : List Ty) (pf : Ω ≡ σ ∷ σs)
+           → toBools Ω ≡ toBool σ ++ toBools σs
+toBools-++ : (Γ Γ′ : List Ty) (pf : Ω ≡ Γ ++ Γ′)
+           → toBools Ω ≡ toBools Γ ++ toBools Γ′
 
 splitVals : (valστ : Vals Ω) (pf : Ω ≡ σs ++ τs)
            → Σ[ valσ ∈ Vals σs ] Σ[ valτ ∈ Vals τs ] (valστ ≡ ++Vlp valσ valτ pf)
@@ -117,22 +117,29 @@ cnfCirc {Γ} (conj c n) = comp pick₁ (clsCirc c ++Cr cnfCirc n) refl (comp pic
 
 ------------------------
 
-pattern i11 = here
-pattern i12 = there here
-pattern i21 = there (there here)
-pattern i22 = there (there (there here))
+pattern α = here
+pattern a = there here
+pattern β = there (there here)
+pattern b = there (there (there here))
 
 encodeOp andT = cnfCirc {[ tri , tri ]} γn ++Cr cnfCirc {[ tri , tri ]} cn
-              where γn = conj (disj (pos i11) (triv (pos i21)))
-                         (conj (disj (pos i11) (triv (pos i12)))
-                         (triv (disj (pos i21) (triv (pos i22)))))
+              where γn = conj (disj (pos α) (triv (pos β)))
+                         (conj (disj (pos α) (triv (pos a)))
+                         (triv (disj (pos β) (triv (pos b)))))
 
-                    cn = conj (triv (pos i12))
-                         (triv (triv (pos i22)))
+                    cn = conj (triv (pos a))
+                         (triv (triv (pos b)))
+encodeOp orT  = cnfCirc {[ tri , tri ]} γn ++Cr cnfCirc {[ tri , tri ]} cn
+              where γn = conj (disj (pos α) (triv (pos β)))
+                         (conj (disj (pos α) (triv (neg a)))
+                         (triv (disj (pos β) (triv (neg b)))))
+
+                    cn = triv (disj (pos a) (triv (pos b)))
+
 encodeOp ≡C   = cnfCirc {[ tri , tri ]} cn
-              where cn = conj (disj (pos i11) (triv (neg i21)))
-                         (conj (disj (pos i11) (disj (pos i12) (triv (neg i22))))
-                         (triv (disj (pos i11) (disj (neg i12) (triv (pos i22))))))
+              where cn = conj (disj (pos α) (triv (neg β)))
+                         (conj (disj (pos α) (disj (pos a) (triv (neg b))))
+                         (triv (disj (pos α) (disj (neg a) (triv (pos b))))))
 
 encodeOp andB = oper andB
 encodeOp orB  = oper orB

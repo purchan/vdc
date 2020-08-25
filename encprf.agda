@@ -35,9 +35,9 @@ decs-lookup : (vars₁ : Vars Γ (toBool σ)) (vars₂ : Vars Γ (toBools σs)) 
              ≡ decodes (σ ∷ σs) (lookup (vars₁ ++Vr vars₂) vals)
 
 decs-++Vlp : (bvalΓ : Vals (toBools Γ)) (bvalΓ′ : Vals (toBools Γ′))
-           → (pf : Θ ≡ Γ ++ Γ′) (pf′ : toBools Θ ≡ toBools Γ ++ toBools Γ′)
+           → (pf : Ω ≡ Γ ++ Γ′) (pf′ : toBools Ω ≡ toBools Γ ++ toBools Γ′)
            → ++Vlp (decodes Γ bvalΓ) (decodes Γ′ bvalΓ′) pf
-           ≡ decodes Θ (++Vlp bvalΓ bvalΓ′ pf′)
+           ≡ decodes Ω (++Vlp bvalΓ bvalΓ′ pf′)
 
 ------------------------
 lookup-mapThere : (vars : Vars Γ Δ) (vl : Ty⟦ τ ⟧) (vals : Vals Γ)
