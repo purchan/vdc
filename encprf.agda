@@ -14,6 +14,10 @@ split-bv : {σ : Ty} {σs : List Ty} (bval : Vals (toBool σ)) (bvals : Vals (to
          ≡ ⟨ bval , ⟨ bvals , refl ⟩ ⟩
 
 ------------------------
+++Vlp-∷ : (v : Ty⟦ σ ⟧) (valσs : Vals σs) (valτs : Vals τs)
+        → (pf₁ : Ω ≡ σs ++ τs) (pf₂ : σ ∷ Ω ≡ (σ ∷ σs) ++ τs)
+        → v ∷ ++Vlp valσs valτs pf₁ ≡ ++Vlp (v ∷ valσs) valτs pf₂
+
 ++Vlp-assoc : (valσs : Vals σs) (valτs : Vals τs) (valsΓ : Vals Γ)
             → (pf₁ : Δ  ≡ τs ++ Γ ) (pf₂ : Ω ≡ σs ++ Δ)
               (pf₃ : Δ′ ≡ σs ++ τs) (pf₄ : Ω ≡ Δ′ ++ Γ)
@@ -68,6 +72,12 @@ split-bv {σs = []}     bval []                         pf = split-ri bval pf
 split-bv {σs = τ ∷ τs} bval bvals                      pf with splitVals {σs = toBool τ} {τs = toBools τs} bvals refl
 split-bv {σs = τ ∷ τs} bval .(++Vlp bvalτ bvalτs refl) pf    | ⟨ bvalτ , ⟨ bvalτs , refl ⟩ ⟩ = split-rc bval bvalτ bvalτs refl pf
 ------------------------
+++Vlp-∷ v valσs valτs refl refl = refl
+
+++Vlp-assoc {[]}              []       valτs valsΓ refl refl refl refl = refl
+++Vlp-assoc {σ ∷ σs} {τs} {Γ} (v ∷ vs) valτs valsΓ refl refl refl pf₄
+  rewrite ++Vlp-assoc {σs} {τs} {Γ} vs valτs valsΓ refl refl refl (sym (++-assoc σs τs Γ))
+        | ++Vlp-∷ v (++Vlp vs valτs refl) valsΓ (sym (++-assoc σs τs Γ)) pf₄ = refl
 
 dec-++Vlp {σ} {σs} bvalσ bvalσs rewrite split-bv {σ ∷ σs} {σ} {σs} bvalσ bvalσs refl = refl
 
