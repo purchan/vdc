@@ -6,10 +6,10 @@ Ty⟦_⟧ : Ty → Set
 
 variable
   σ  τ  : Ty
-  σs τs Γ Γ′ Δ Δ′ Θ Θ′ : List Ty
+  σs τs Γ Γ′ Δ Δ′ Θ Θ′ Ω Ω′ : List Ty
 ------------------------
 data Vals : List Ty → Set
-_++Vl_ : Vals Γ   → Vals Γ′ → Vals (Γ ++ Γ′)
+++Vlp : Vals Γ → Vals Γ′ → (pf : Ω ≡ Γ ++ Γ′) → Vals Ω
 
 data Vars : List Ty → List Ty → Set
 _++Vr_ : Vars Γ Δ → Vars Γ Δ′ → Vars Γ (Δ ++ Δ′)
@@ -51,12 +51,13 @@ data Vars where
   []  : Vars Γ []
   _∷_ : (σ ∈ Γ) → Vars Γ Δ → Vars Γ (σ ∷ Δ)
 
-pattern [_]     x     = x ∷ []
-pattern [_,_]   x y   = x ∷ y ∷ []
-pattern [_,_,_] x y z = x ∷ y ∷ z ∷ []
+pattern [_]       w       = w ∷ []
+pattern [_,_]     w x     = w ∷ x ∷ []
+pattern [_,_,_]   w x y   = w ∷ x ∷ y ∷ []
+pattern [_,_,_,_] w x y z = w ∷ x ∷ y ∷ z ∷ []
 
-[]       ++Vl ys = ys
-(x ∷ xs) ++Vl ys = x ∷ (xs ++Vl ys)
+++Vlp []       ys refl = ys
+++Vlp (x ∷ xs) ys refl = x ∷ (++Vlp xs ys refl)
 
 []       ++Vr ys = ys
 (x ∷ xs) ++Vr ys = x ∷ (xs ++Vr ys)
@@ -83,20 +84,27 @@ sufVars s (vr ∷ vars) = ∈-suf vr ∷ sufVars s vars
 ------------------------
 data Op where
   andT : Op [ tri , tri ]   tri
-  andB : Op [ bool , bool ] bool
+  orT  : Op [ tri , tri ]   tri
   ≡C   : Op [ tri , tri ]   bool
+
+  andB : Op [ bool , bool ] bool
+  orB  : Op [ bool , bool ] bool
+  notB : Op [ bool ]        bool
 
 data Circ where
   ret  : Vars Γ Δ → Circ Γ Δ
   oper : Op Γ τ   → Circ Γ [ τ ]
-  comp : Vars Γ Θ → Circ Θ Θ′ → Circ (Θ′ ++ Γ) Δ → Circ Γ Δ
+  comp : Vars Γ Θ → Circ Θ Θ′ → {Γ′ : List Ty} → (pf : Γ′ ≡ Θ′ ++ Γ) → Circ Γ′ Δ → Circ Γ Δ
 
 Op⟦ andT ⟧ [ true  , y     ] = y
 Op⟦ andT ⟧ [ false , _     ] = false
 Op⟦ andT ⟧ [ dc    , false ] = false
 Op⟦ andT ⟧ [ dc    , _     ] = dc
 
-Op⟦ andB ⟧ [ x , y ] = x ∧ y
+Op⟦ orT  ⟧ [ false , y     ] = y
+Op⟦ orT  ⟧ [ true  , _     ] = true
+Op⟦ orT  ⟧ [ dc    , true  ] = true
+Op⟦ orT  ⟧ [ dc    , _     ] = dc
 
 Op⟦ ≡C   ⟧ [ false , false ] = true
 Op⟦ ≡C   ⟧ [ false , _     ] = false
@@ -104,6 +112,10 @@ Op⟦ ≡C   ⟧ [ true  , true  ] = true
 Op⟦ ≡C   ⟧ [ true  , _     ] = false
 Op⟦ ≡C   ⟧ [ dc    , _     ] = true
 
+Op⟦ andB ⟧ [ x , y ] = x ∧ y
+Op⟦ orB  ⟧ [ x , y ] = x ∨ y
+Op⟦ notB ⟧ [ b ]     = not b
+
 Cr⟦ ret vars ⟧ vals = lookup vars vals
 Cr⟦ oper op  ⟧ vals = [ Op⟦ op ⟧ vals ]
-Cr⟦ comp vars c k ⟧ vals = Cr⟦ k ⟧ (Cr⟦ c ⟧ (lookup vars vals) ++Vl vals)
+Cr⟦ comp vars c pf k ⟧ vals = Cr⟦ k ⟧ (++Vlp (Cr⟦ c ⟧ (lookup vars vals)) vals pf)

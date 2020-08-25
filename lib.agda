@@ -1,4 +1,4 @@
-open import Data.Bool using (Bool; true; false;  _∧_) public
+open import Data.Bool using (Bool; true; false;  _∧_; _∨_; not) public
 open import Data.Nat  using (ℕ) public
 open import Data.List using (List; []; _∷_; _++_; replicate; concatMap) public
 open import Data.Product using (Σ; Σ-syntax) renaming (_,_ to ⟨_,_⟩) public
