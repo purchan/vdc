@@ -22,6 +22,7 @@ For example, the three-valued AND logic gate truth table is:
 | **0** | 0 | 0 | 0 |
 | **X** | 0 | X | X |
 | **1** | 0 | X | 1 |
+
 The bold column represents input value from the golden circuit, and the bold row represents input value from the revised circuit.
 This truth table is derived from the fact that AND(0, x) = 0, AND(1, x) = x.
 
@@ -30,7 +31,8 @@ Compatible equivalence gate is the three-valued version of XOR gate in the miter
 |:-:|:-:|:-:|:-:|
 | **0** | 0 | 1 | 1 |
 | **X** | 0 | 0 | 0 |
-| **1** | 1 | 1 | 0 | 
+| **1** | 1 | 1 | 0 |
+
 Notice that the table matrix is not symmetric, as the revised circuit is allowed to enforce an 0 value or 1 value on each X value of the golden circuit.
 
 ### Using SAT
